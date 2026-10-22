@@ -81,14 +81,46 @@ export function wallHits(b: BoundingBox): WallHit {
     };
 }
 
-export interface BreakoutModelElement {
-    move(dt: number): void;
-    checkBounds(): void;
-    draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform): void;
-    bounds(): BoundingBox;
+export abstract class BreakoutModelElement {
+    private wallsHit: WallHit;
+    private doMove: boolean;
+
+    constructor() {
+        this.doMove = true;
+        this.wallsHit = {
+            top: false,
+            left: false,
+            right: false,
+            bottom: false,
+        };
+    }
+
+    get boundHits(): WallHit {
+        return this.wallsHit;
+    }
+
+    set canMove(move: boolean) {
+        this.doMove = move;
+    }
+
+    abstract bounds(): BoundingBox;
+    move(dt: number) {
+        if (this.doMove) {
+            this.moveObject(dt);
+        }
+    }
+    protected abstract moveObject(dt: number): void;
+    checkBounds(): void {
+        this.wallsHit = this.checkObjectBounds();
+    }
+    protected abstract checkObjectBounds(): WallHit;
+    abstract draw(
+        ctx: CanvasRenderingContext2D,
+        transform: AxesModelTransform,
+    ): void;
 }
 
-export class Paddle implements BreakoutModelElement {
+export class Paddle extends BreakoutModelElement {
     X: number;
     Y: number;
     XSpeed: number;
@@ -99,6 +131,7 @@ export class Paddle implements BreakoutModelElement {
     direction: Direction = "none";
 
     constructor({ ...params }: PaddleModel) {
+        super();
         this.Y = params.Y;
         this.X = params.X;
         this.XSpeed = params.XSpeed;
@@ -107,7 +140,7 @@ export class Paddle implements BreakoutModelElement {
         this.height = params.height;
     }
 
-    move(dt: number) {
+    protected moveObject(dt: number) {
         const step = this.XSpeed * dt;
         switch (this.direction) {
             case "left": {
@@ -129,10 +162,11 @@ export class Paddle implements BreakoutModelElement {
         return { x: this.X, y: this.Y, w: this.width, h: this.height };
     }
 
-    checkBounds() {
+    protected checkObjectBounds() {
         const hit = wallHits(this.bounds());
         if (hit.left) this.X = 0;
         else if (hit.right) this.X = 1 - this.width;
+        return hit;
     }
 
     draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform) {
@@ -155,7 +189,7 @@ export type BallModel = {
     height: number;
 };
 
-export class Ball implements BreakoutModelElement {
+export class Ball extends BreakoutModelElement {
     X: number;
     Y: number;
     velocity: number;
@@ -164,6 +198,7 @@ export class Ball implements BreakoutModelElement {
     height: number;
 
     constructor({ ...params }: BallModel) {
+        super();
         this.X = params.X;
         this.Y = params.Y;
         this.velocity = params.velocity;
@@ -172,7 +207,7 @@ export class Ball implements BreakoutModelElement {
         this.height = params.height;
     }
 
-    move(dt: number) {
+    protected moveObject(dt: number) {
         const xStep =
             Math.cos((this.angleDeg * Math.PI) / 180) * this.velocity * dt;
         const yStep =
@@ -186,9 +221,9 @@ export class Ball implements BreakoutModelElement {
         return { x: this.X, y: this.Y, w: this.width, h: this.height };
     }
 
-    checkBounds() {
+    protected checkObjectBounds() {
         const hit = wallHits(this.bounds());
-        if (!hit.left && !hit.right && !hit.top && !hit.bottom) return;
+        if (!hit.left && !hit.right && !hit.top && !hit.bottom) return hit;
 
         // Work in velocity components so reflection is simple
         const rad = (this.angleDeg * Math.PI) / 180;
@@ -213,7 +248,9 @@ export class Ball implements BreakoutModelElement {
         }
 
         this.angleDeg = (Math.atan2(vy, vx) * 180) / Math.PI;
+        return hit;
     }
+
     draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform) {
         ctx.fillStyle = "#FF0000";
         ctx.fillStyle;

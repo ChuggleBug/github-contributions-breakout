@@ -43,16 +43,30 @@ export default function Breakout({
         return modelY * height;
     };
 
-    // BallStartState.angleDeg can be either a
-    // range or a number, so a single number needs
-    //  to be resolved during construction
-    const angleDegSafe = properties?.ball?.angleDeg ?? DEFAULTS.ball.angleDeg;
-    const resolveAngleDeg =
-        typeof angleDegSafe === "number"
-            ? angleDegSafe
-            : Math.floor(
-                  Math.random() * (angleDegSafe.max - angleDegSafe.min + 1),
-              ) + angleDegSafe.min;
+    const makeBall = () => {
+        // BallStartState.angleDeg can be either a
+        // range or a number, so a single number needs
+        //  to be resolved during construction
+        const angleDegSafe =
+            properties?.ball?.angleDeg ?? DEFAULTS.ball.angleDeg;
+        const resolveAngleDeg =
+            typeof angleDegSafe === "number"
+                ? angleDegSafe
+                : Math.floor(
+                      Math.random() * (angleDegSafe.max - angleDegSafe.min + 1),
+                  ) + angleDegSafe.min;
+
+        const ball = new Ball({
+            ...DEFAULTS.ball,
+            ...properties?.ball,
+            angleDeg: resolveAngleDeg,
+        });
+        // Convert ball to real coordinates
+        ball.X -= ball.width / 2;
+        ball.Y -= ball.height / 2;
+        ball.angleDeg = (360 - ball.angleDeg) % 360;
+        return ball;
+    };
 
     // Starting State of the model
     let model: BreakoutModel = {
@@ -60,21 +74,12 @@ export default function Breakout({
             ...DEFAULTS.paddle,
             ...properties?.paddle,
         }),
-        ball: new Ball({
-            ...DEFAULTS.ball,
-            ...properties?.ball,
-            angleDeg: resolveAngleDeg,
-        }),
+        ball: makeBall(),
     };
     // Convert paddle to real coordinates
     model.paddle.X -= model.paddle.width / 2;
     model.paddle.Y -= model.paddle.height / 2;
     // TODO: Bounds check initial state
-
-    // Convert ball to real coordinates
-    model.ball.X -= model.ball.width / 2;
-    model.ball.Y -= model.ball.height / 2;
-    model.ball.angleDeg = (360 - model.ball.angleDeg) % 360;
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -150,6 +155,7 @@ export default function Breakout({
             return direction;
         };
 
+        let objects = new Set<BreakoutModelElement>([model.paddle, model.ball]);
         const render = (time: number) => {
             if (lastTime === null) {
                 lastTime = time;
@@ -162,19 +168,25 @@ export default function Breakout({
             } else if (state === "play") {
                 playTime += deltaTime;
 
+                // Move and out of bounds check
                 model.paddle.direction = getDirection();
-                model.paddle.move(deltaTime);
-                model.ball.move(deltaTime);
+                objects.forEach((e) => e.move(deltaTime));
+                objects.forEach((e) => e.checkBounds());
 
-                model.paddle.checkBounds();
-                model.ball.checkBounds();
+                // Ball Deletion, and respawn logic
+                if (objects.has(model.ball) && model.ball.boundHits.bottom) {
+                    objects.delete(model.ball);
+                    model.ball = makeBall();
+                    objects.add(model.ball);
+                    model.ball.canMove = false;
+                    setTimeout(() => {
+                        model.ball.canMove = true;
+                    }, 1000);
+                }
 
-                
-
+                // Drawing
                 ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                drawObject(model.paddle);
-                drawObject(model.ball);
-                // drawBall(ctx);
+                objects.forEach((e) => drawObject(e));
 
                 // TOOD: Modify this
                 score = Math.floor(playTime);
