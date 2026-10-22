@@ -8,21 +8,27 @@ export type BreakoutProps = {
     store?: BreakoutStore;
 };
 
-type BreakoutModel = {
-    // The left-most position
-    paddleX: number;
-};
-
-let model: BreakoutModel = {
-    paddleX: 0,
-};
-
 type BreakoutProperties = {
     paddleXDelta: number;
+    paddleWidth: number;
+    paddleHeight: number;
 };
 
+// Does not move vertically
+const PADDLE_STARTING_X = 0.5;
+const PADDLE_STARTING_Y = 0.85;
+
+const PADDLE_HEIGHT = 0.01;
 let properties: BreakoutProperties = {
     paddleXDelta: 0.008,
+    paddleWidth: 0.2,
+    paddleHeight: PADDLE_HEIGHT,
+};
+
+type BreakoutModel = {
+    // Based on canvas dimensions
+    paddleX: number;
+    paddleY: number;
 };
 
 const LEFT_KEYS = ["KeyA", "ArrowLeft"];
@@ -45,6 +51,12 @@ export default function Breakout({ height, width, store }: BreakoutProps) {
         return modelY * height;
     };
 
+    // Starting State of the model
+    let model: BreakoutModel = {
+        paddleX: PADDLE_STARTING_X - properties.paddleWidth / 2,
+        paddleY: PADDLE_STARTING_Y,
+    };
+
     useEffect(() => {
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext("2d");
@@ -55,7 +67,7 @@ export default function Breakout({ height, width, store }: BreakoutProps) {
         let lastReportedScore = -1;
         let animationFrameId: number;
         type State = "pause" | "play";
-        let state: State = "pause";
+        let state: State = "play";
         let direction: Direction = "none";
 
         // Load keyboard events
@@ -125,6 +137,16 @@ export default function Breakout({ height, width, store }: BreakoutProps) {
                         break;
                     }
                 }
+                // Left Edge Detection
+                if (model.paddleX <= 0) {
+                    model.paddleX = 0;
+                }
+                // Right edge Detection
+                if (model.paddleX + properties.paddleWidth >= 1) {
+                    model.paddleX = 1 - properties.paddleWidth;
+                }
+
+                console.log(model.paddleX);
 
                 frameCount++;
                 score = Math.floor(frameCount / 120);
@@ -158,9 +180,9 @@ export default function Breakout({ height, width, store }: BreakoutProps) {
         ctx.fillStyle = "#FFFFFF";
         ctx.fillRect(
             modelToX(model.paddleX),
-            modelToY(0.85),
-            modelToX(0.2),
-            modelToY(0.01),
+            modelToY(model.paddleY),
+            modelToX(properties.paddleWidth),
+            modelToY(properties.paddleHeight),
         );
     };
 
