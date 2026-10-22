@@ -1,42 +1,54 @@
 import "./breakout.css";
 import { useEffect, useRef } from "react";
-import type { BreakoutStore } from "./useBreakoutStore";
+import { DEFAULT_STATE, type BreakoutStore } from "./useBreakoutStore";
+import type { BreakoutProperties } from "./types";
+import { DEFAULTS } from "./defaults";
 
 export type BreakoutProps = {
     height: number;
     width: number;
     store?: BreakoutStore;
-};
-
-type BreakoutProperties = {
-    paddleXDelta: number;
-    paddleWidth: number;
-    paddleHeight: number;
-};
-
-// Does not move vertically
-const PADDLE_STARTING_X = 0.5;
-const PADDLE_STARTING_Y = 0.85;
-
-const PADDLE_HEIGHT = 0.01;
-let properties: BreakoutProperties = {
-    paddleXDelta: 0.008,
-    paddleWidth: 0.2,
-    paddleHeight: PADDLE_HEIGHT,
+    properties?: BreakoutProperties;
 };
 
 type BreakoutModel = {
-    // Based on canvas dimensions
-    paddleX: number;
-    paddleY: number;
+    paddle: PaddleModel;
+};
+
+type PaddleModel = {
+    X: number;
+    Y: number;
+    XSpeed: number;
+    YSpeed: number;
+    width: number;
+    height: number;
+};
+
+type BlockModel = {
+    X: number;
+    Y: number;
+    level: number;
+};
+
+type BallModel = {
+    X: number;
+    Y: number;
+    Velocity: number;
+    AngleDeg: number;
 };
 
 const LEFT_KEYS = ["KeyA", "ArrowLeft"];
 const RIGHT_KEYS = ["KeyD", "ArrowRight"];
 
-type Direction = "left" | "right" | "none";
+export type State = "pause" | "play";
+export type Direction = "left" | "right" | "none";
 
-export default function Breakout({ height, width, store }: BreakoutProps) {
+export default function Breakout({
+    height,
+    width,
+    store,
+    properties,
+}: BreakoutProps) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const storeRef = useRef(store);
     useEffect(() => {
@@ -53,9 +65,14 @@ export default function Breakout({ height, width, store }: BreakoutProps) {
 
     // Starting State of the model
     let model: BreakoutModel = {
-        paddleX: PADDLE_STARTING_X - properties.paddleWidth / 2,
-        paddleY: PADDLE_STARTING_Y,
+        paddle: {
+            ...DEFAULTS.paddle,
+            ...properties?.paddle,
+        },
     };
+    // Convert Paddle X to real coordinated
+    model.paddle.X -= model.paddle.width / 2;
+    // TODO: Bounds check initial state
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -66,8 +83,7 @@ export default function Breakout({ height, width, store }: BreakoutProps) {
         let score = 0;
         let lastReportedScore = -1;
         let animationFrameId: number;
-        type State = "pause" | "play";
-        let state: State = "play";
+        let state: State = storeRef.current?.state ?? DEFAULT_STATE;
         let direction: Direction = "none";
 
         // Load keyboard events
@@ -86,10 +102,12 @@ export default function Breakout({ height, width, store }: BreakoutProps) {
         };
         const handleBlur = () => {
             state = "pause";
+            storeRef.current?.setState("pause");
             keySet.clear();
         };
         const handleFocus = () => {
             state = "play";
+            storeRef.current?.setState("play");
         };
 
         // Events
@@ -99,9 +117,23 @@ export default function Breakout({ height, width, store }: BreakoutProps) {
         canvas.addEventListener("blur", handleBlur);
         canvas.addEventListener("focus", handleFocus);
 
-        const render = () => {
+        // Time
+        let lastTime: number | null = null;
+        let playTime: number = 0;
+        const MAX_DELTA_TIME: number = 0.05;
+
+        const render = (time: number) => {
+            if (lastTime === null) {
+                lastTime = time;
+            }
+            let deltaTime = (time - lastTime) / 1000;
+            lastTime = time;
+            deltaTime = Math.min(deltaTime, MAX_DELTA_TIME);
+
             if (state === "pause") {
             } else if (state === "play") {
+                playTime += deltaTime;
+
                 // Detect Movement
                 direction = "none";
                 for (const k of LEFT_KEYS) {
@@ -123,13 +155,14 @@ export default function Breakout({ height, width, store }: BreakoutProps) {
                 }
 
                 // Move Paddle
+                const step = model.paddle.XSpeed * deltaTime;
                 switch (direction) {
                     case "left": {
-                        model.paddleX -= properties.paddleXDelta;
+                        model.paddle.X -= step;
                         break;
                     }
                     case "right": {
-                        model.paddleX += properties.paddleXDelta;
+                        model.paddle.X += step;
                         break;
                     }
                     case "none":
@@ -138,21 +171,17 @@ export default function Breakout({ height, width, store }: BreakoutProps) {
                     }
                 }
                 // Left Edge Detection
-                if (model.paddleX <= 0) {
-                    model.paddleX = 0;
+                if (model.paddle.X <= 0) {
+                    model.paddle.X = 0;
                 }
                 // Right edge Detection
-                if (model.paddleX + properties.paddleWidth >= 1) {
-                    model.paddleX = 1 - properties.paddleWidth;
+                if (model.paddle.X + model.paddle.width >= 1) {
+                    model.paddle.X = 1 - model.paddle.width;
                 }
 
-                console.log(model.paddleX);
-
-                frameCount++;
-                score = Math.floor(frameCount / 120);
+                score = Math.floor(playTime);
 
                 ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                draw(ctx, frameCount);
                 drawPaddle(ctx);
 
                 // Only tell React when something actually changed
@@ -162,9 +191,10 @@ export default function Breakout({ height, width, store }: BreakoutProps) {
                 }
             }
 
+            frameCount++;
             animationFrameId = window.requestAnimationFrame(render);
         };
-        render();
+        animationFrameId = window.requestAnimationFrame(render);
 
         return () => {
             window.cancelAnimationFrame(animationFrameId);
@@ -179,18 +209,11 @@ export default function Breakout({ height, width, store }: BreakoutProps) {
     const drawPaddle = (ctx: CanvasRenderingContext2D) => {
         ctx.fillStyle = "#FFFFFF";
         ctx.fillRect(
-            modelToX(model.paddleX),
-            modelToY(model.paddleY),
-            modelToX(properties.paddleWidth),
-            modelToY(properties.paddleHeight),
+            modelToX(model.paddle.X),
+            modelToY(model.paddle.Y),
+            modelToX(model.paddle.width),
+            modelToY(model.paddle.height),
         );
-    };
-
-    const draw = (ctx: CanvasRenderingContext2D, frameCount: number) => {
-        ctx.fillStyle = "#000000";
-        ctx.beginPath();
-        ctx.arc(50, 100, 20 * Math.sin(frameCount * 0.05) ** 2, 0, 2 * Math.PI);
-        ctx.fill();
     };
 
     return (
