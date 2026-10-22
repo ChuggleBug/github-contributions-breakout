@@ -58,11 +58,34 @@ export type AxesModelTransform = {
     Y: ModelTransform;
 };
 
+export interface BoundingBox {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+
+export interface WallHit {
+    left: boolean;
+    right: boolean;
+    top: boolean;
+    bottom: boolean;
+}
+
+export function wallHits(b: BoundingBox): WallHit {
+    return {
+        left: b.x < 0,
+        right: b.x + b.w > 1,
+        top: b.y < 0,
+        bottom: b.y + b.h > 1,
+    };
+}
+
 export interface BreakoutModelElement {
     move(dt: number): void;
     checkBounds(): void;
     draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform): void;
-    // bounds(): BoundingBox;
+    bounds(): BoundingBox;
 }
 
 export class Paddle implements BreakoutModelElement {
@@ -102,22 +125,14 @@ export class Paddle implements BreakoutModelElement {
         }
     }
 
+    bounds(): BoundingBox {
+        return { x: this.X, y: this.Y, w: this.width, h: this.height };
+    }
+
     checkBounds() {
-        // Left Edge Detection
-        if (this.X <= 0) {
-            this.X = 0;
-        }
-        // Right edge Detection
-        if (this.X + this.width >= 1) {
-            this.X = 1 - this.width;
-        }
-        if (this.X <= 0) {
-            this.X = 0;
-        }
-        // Right edge Detection
-        if (this.X + this.width >= 1) {
-            this.X = 1 - this.width;
-        }
+        const hit = wallHits(this.bounds());
+        if (hit.left) this.X = 0;
+        else if (hit.right) this.X = 1 - this.width;
     }
 
     draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform) {
@@ -167,7 +182,38 @@ export class Ball implements BreakoutModelElement {
         this.X = toX;
         this.Y = toY;
     }
-    checkBounds() {}
+    bounds(): BoundingBox {
+        return { x: this.X, y: this.Y, w: this.width, h: this.height };
+    }
+
+    checkBounds() {
+        const hit = wallHits(this.bounds());
+        if (!hit.left && !hit.right && !hit.top && !hit.bottom) return;
+
+        // Work in velocity components so reflection is simple
+        const rad = (this.angleDeg * Math.PI) / 180;
+        let vx = Math.cos(rad);
+        let vy = Math.sin(rad);
+
+        if (hit.left) {
+            this.X = 0;
+            vx = Math.abs(vx);
+        }
+        if (hit.right) {
+            this.X = 1 - this.width;
+            vx = -Math.abs(vx);
+        }
+        if (hit.top) {
+            this.Y = 0;
+            vy = Math.abs(vy);
+        }
+        if (hit.bottom) {
+            this.Y = 1 - this.height;
+            vy = -Math.abs(vy);
+        }
+
+        this.angleDeg = (Math.atan2(vy, vx) * 180) / Math.PI;
+    }
     draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform) {
         ctx.fillStyle = "#FF0000";
         ctx.fillStyle;
