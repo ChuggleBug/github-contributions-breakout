@@ -1,8 +1,13 @@
 import "./breakout.css";
 import { useEffect, useRef } from "react";
-import { DEFAULT_STATE, type BreakoutStore } from "./useBreakoutStore";
-import type { BreakoutProperties } from "./types";
-import { DEFAULTS } from "./defaults";
+import { type BreakoutStore } from "./useBreakoutStore";
+import type {
+    BreakoutProperties,
+    BreakoutModel,
+    State,
+    Direction,
+} from "./types";
+import { DEFAULT_STATE, DEFAULTS } from "./defaults";
 
 export type BreakoutProps = {
     height: number;
@@ -11,37 +16,8 @@ export type BreakoutProps = {
     properties?: BreakoutProperties;
 };
 
-type BreakoutModel = {
-    paddle: PaddleModel;
-};
-
-type PaddleModel = {
-    X: number;
-    Y: number;
-    XSpeed: number;
-    YSpeed: number;
-    width: number;
-    height: number;
-};
-
-type BlockModel = {
-    X: number;
-    Y: number;
-    level: number;
-};
-
-type BallModel = {
-    X: number;
-    Y: number;
-    Velocity: number;
-    AngleDeg: number;
-};
-
 const LEFT_KEYS = ["KeyA", "ArrowLeft"];
 const RIGHT_KEYS = ["KeyD", "ArrowRight"];
-
-export type State = "pause" | "play";
-export type Direction = "left" | "right" | "none";
 
 export default function Breakout({
     height,
@@ -63,16 +39,38 @@ export default function Breakout({
         return modelY * height;
     };
 
+    // BallStartState.angleDeg can be either a
+    // range or a number, so a single number needs
+    //  to be resolved during construction
+    const angleDegSafe = properties?.ball?.angleDeg ?? DEFAULTS.ball.angleDeg;
+    const resolveAngleDeg =
+        typeof angleDegSafe === "number"
+            ? angleDegSafe
+            : Math.floor(
+                  Math.random() * (angleDegSafe.max - angleDegSafe.min + 1),
+              ) + angleDegSafe.min;
+
     // Starting State of the model
     let model: BreakoutModel = {
         paddle: {
             ...DEFAULTS.paddle,
             ...properties?.paddle,
         },
+        ball: {
+            ...DEFAULTS.ball,
+            ...properties?.ball,
+            angleDeg: resolveAngleDeg,
+        },
     };
-    // Convert Paddle X to real coordinated
+    // Convert paddle to real coordinates
     model.paddle.X -= model.paddle.width / 2;
+    model.paddle.Y -= model.paddle.height / 2;
     // TODO: Bounds check initial state
+
+    // Convert ball to real coordinates
+    model.ball.X -= model.ball.width / 2;
+    model.ball.Y -= model.ball.height / 2;
+    model.ball.angleDeg = (360 - model.ball.angleDeg) % 360;
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -179,16 +177,33 @@ export default function Breakout({
                     model.paddle.X = 1 - model.paddle.width;
                 }
 
-                score = Math.floor(playTime);
+                // Move Ball
+                const xStep =
+                    Math.cos((model.ball.angleDeg * Math.PI) / 180) *
+                    model.ball.velocity *
+                    deltaTime;
+                const yStep =
+                    Math.sin((model.ball.angleDeg * Math.PI) / 180) *
+                    model.ball.velocity *
+                    deltaTime;
+                const toX = model.ball.X + xStep;
+                const toY = model.ball.Y + yStep;
+                model.ball.X = toX;
+                model.ball.Y = toY;
 
+                // TOOD: Modify this
+                score = Math.floor(playTime);
                 ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
                 drawPaddle(ctx);
+                drawBall(ctx);
 
                 // Only tell React when something actually changed
                 if (score !== lastReportedScore) {
                     lastReportedScore = score;
                     storeRef.current?.setScore(score);
                 }
+
+                //
             }
 
             frameCount++;
@@ -213,6 +228,17 @@ export default function Breakout({
             modelToY(model.paddle.Y),
             modelToX(model.paddle.width),
             modelToY(model.paddle.height),
+        );
+    };
+
+    const drawBall = (ctx: CanvasRenderingContext2D) => {
+        ctx.fillStyle = "#FF0000";
+        ctx.fillStyle;
+        ctx.fillRect(
+            modelToX(model.ball.X),
+            modelToY(model.ball.Y),
+            modelToX(model.ball.width),
+            modelToY(model.ball.height),
         );
     };
 

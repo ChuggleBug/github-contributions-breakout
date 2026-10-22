@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { State } from "./Breakout";
+import type { State } from "./types";
+import { DEFAULT_STATE } from "./defaults";
 
 export type BreakoutStore = {
     score: number;
@@ -7,9 +8,6 @@ export type BreakoutStore = {
     state: State;
     setState: (state: State) => void;
 };
-
-export const DEFAULT_STATE: State = "play";
-
 export default function useBreakoutStore(): BreakoutStore {
     const [score, setScore] = useState(0);
     const [state, setState] = useState<State>(DEFAULT_STATE);
