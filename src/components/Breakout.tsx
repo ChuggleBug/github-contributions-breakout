@@ -191,19 +191,16 @@ export default function Breakout({
                 model.ball.X = toX;
                 model.ball.Y = toY;
 
-                // TOOD: Modify this
-                score = Math.floor(playTime);
                 ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
                 drawPaddle(ctx);
                 drawBall(ctx);
 
-                // Only tell React when something actually changed
+                // TOOD: Modify this
+                score = Math.floor(playTime);
                 if (score !== lastReportedScore) {
                     lastReportedScore = score;
                     storeRef.current?.setScore(score);
                 }
-
-                //
             }
 
             frameCount++;
