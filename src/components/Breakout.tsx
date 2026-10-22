@@ -1,12 +1,16 @@
 import "./breakout.css";
 import { useEffect, useRef } from "react";
 import { type BreakoutStore } from "./useBreakoutStore";
-import type {
-    BreakoutProperties,
-    BreakoutModel,
-    State,
-    Direction,
+import {
+    Paddle,
+    Ball,
+    type BreakoutProperties,
+    type BreakoutModel,
+    type State,
+    type Direction,
+    type BreakoutModelElement,
 } from "./types";
+
 import { DEFAULT_STATE, DEFAULTS } from "./defaults";
 
 export type BreakoutProps = {
@@ -52,15 +56,15 @@ export default function Breakout({
 
     // Starting State of the model
     let model: BreakoutModel = {
-        paddle: {
+        paddle: new Paddle({
             ...DEFAULTS.paddle,
             ...properties?.paddle,
-        },
-        ball: {
+        }),
+        ball: new Ball({
             ...DEFAULTS.ball,
             ...properties?.ball,
             angleDeg: resolveAngleDeg,
-        },
+        }),
     };
     // Convert paddle to real coordinates
     model.paddle.X -= model.paddle.width / 2;
@@ -82,7 +86,6 @@ export default function Breakout({
         let lastReportedScore = -1;
         let animationFrameId: number;
         let state: State = storeRef.current?.state ?? DEFAULT_STATE;
-        let direction: Direction = "none";
 
         // Load keyboard events
         const keySet = new Set<string>();
@@ -120,6 +123,33 @@ export default function Breakout({
         let playTime: number = 0;
         const MAX_DELTA_TIME: number = 0.05;
 
+        // Draw Wrapper
+        const drawObject = (e: BreakoutModelElement) => {
+            e.draw(ctx, { X: modelToX, Y: modelToY });
+        };
+
+        const getDirection = () => {
+            let direction: Direction = "none";
+            for (const k of LEFT_KEYS) {
+                if (keySet.has(k)) {
+                    direction = "left";
+                    break;
+                }
+            }
+            for (const k of RIGHT_KEYS) {
+                if (keySet.has(k)) {
+                    // Conflicting directions
+                    if (direction === "left") {
+                        direction = "none";
+                    } else {
+                        direction = "right";
+                    }
+                    break;
+                }
+            }
+            return direction;
+        };
+
         const render = (time: number) => {
             if (lastTime === null) {
                 lastTime = time;
@@ -132,68 +162,19 @@ export default function Breakout({
             } else if (state === "play") {
                 playTime += deltaTime;
 
-                // Detect Movement
-                direction = "none";
-                for (const k of LEFT_KEYS) {
-                    if (keySet.has(k)) {
-                        direction = "left";
-                        break;
-                    }
-                }
-                for (const k of RIGHT_KEYS) {
-                    if (keySet.has(k)) {
-                        // Conflicting directions
-                        if (direction === "left") {
-                            direction = "none";
-                        } else {
-                            direction = "right";
-                        }
-                        break;
-                    }
-                }
+                model.paddle.direction = getDirection();
+                model.paddle.move(deltaTime);
+                model.ball.move(deltaTime);
 
-                // Move Paddle
-                const step = model.paddle.XSpeed * deltaTime;
-                switch (direction) {
-                    case "left": {
-                        model.paddle.X -= step;
-                        break;
-                    }
-                    case "right": {
-                        model.paddle.X += step;
-                        break;
-                    }
-                    case "none":
-                    default: {
-                        break;
-                    }
-                }
-                // Left Edge Detection
-                if (model.paddle.X <= 0) {
-                    model.paddle.X = 0;
-                }
-                // Right edge Detection
-                if (model.paddle.X + model.paddle.width >= 1) {
-                    model.paddle.X = 1 - model.paddle.width;
-                }
+                model.paddle.checkBounds();
+                model.ball.checkBounds();
 
-                // Move Ball
-                const xStep =
-                    Math.cos((model.ball.angleDeg * Math.PI) / 180) *
-                    model.ball.velocity *
-                    deltaTime;
-                const yStep =
-                    Math.sin((model.ball.angleDeg * Math.PI) / 180) *
-                    model.ball.velocity *
-                    deltaTime;
-                const toX = model.ball.X + xStep;
-                const toY = model.ball.Y + yStep;
-                model.ball.X = toX;
-                model.ball.Y = toY;
+                
 
                 ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                drawPaddle(ctx);
-                drawBall(ctx);
+                drawObject(model.paddle);
+                drawObject(model.ball);
+                // drawBall(ctx);
 
                 // TOOD: Modify this
                 score = Math.floor(playTime);
@@ -217,27 +198,6 @@ export default function Breakout({
             canvas.removeEventListener("focus", handleFocus);
         };
     }, []);
-
-    const drawPaddle = (ctx: CanvasRenderingContext2D) => {
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(
-            modelToX(model.paddle.X),
-            modelToY(model.paddle.Y),
-            modelToX(model.paddle.width),
-            modelToY(model.paddle.height),
-        );
-    };
-
-    const drawBall = (ctx: CanvasRenderingContext2D) => {
-        ctx.fillStyle = "#FF0000";
-        ctx.fillStyle;
-        ctx.fillRect(
-            modelToX(model.ball.X),
-            modelToY(model.ball.Y),
-            modelToX(model.ball.width),
-            modelToY(model.ball.height),
-        );
-    };
 
     return (
         <canvas
