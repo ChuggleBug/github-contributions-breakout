@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import useBreakoutStore, {
     type BreakoutStore,
 } from "./components/useBreakoutStore";
-import type { BlockData, BlockGrid } from "./components/types/properties";
+import type { BlockGrid } from "./components/types/properties";
 
 function App() {
     const store: BreakoutStore = useBreakoutStore();
@@ -23,8 +23,9 @@ function App() {
         Array.from({ length: end - start + 1 }, (_, i) => i + start);
     const blocks: BlockGrid = {
         blocksPerRow: 7,
-        blocks: range(1, 14).map(() => {
-            return { level: 2 };
+        blocks: range(1, 35).map((n) => {
+            // blocks: range(1, 700).map((n) => {
+            return { level: n };
         }),
     };
 
