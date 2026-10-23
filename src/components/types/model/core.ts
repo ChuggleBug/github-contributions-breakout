@@ -2,7 +2,7 @@ import type { Block } from "./block";
 import type { Paddle } from "./paddle";
 import type { Ball } from "./ball";
 
-export type State = "pause" | "play" | "start";
+export type State = "pause" | "play" | "start" | "end";
 export type Direction = "left" | "right" | "none";
 
 export type ModelTransform = (axis: number) => number;

@@ -240,11 +240,23 @@ export default function Breakout({
                 }
             }
             // Check if the bottom row is empty
-            if (model.blockMatrix[0].every((b) => !b.alive)) {
-                console.log("moving down");
-                model.blockMatrix = model.blockMatrix.slice(1);
-                blockDownStepsCountdown = CONSTANTS.GAME_BLOCK_DOWN_STEPS;
+            let sliceTo: number = 0;
+            for (let i = 0; i < model.blockMatrix.length; i += 1) {
+                // Row is empty
+                if (model.blockMatrix[i].every((b) => !b.alive)) {
+                    sliceTo = i + 1;
+                    blockDownStepsCountdown += CONSTANTS.GAME_BLOCK_DOWN_STEPS;
+                } else {
+                    break;
+                }
+            }
+            if (sliceTo >= 1) {
+                model.blockMatrix = model.blockMatrix.slice(sliceTo);
                 model.blockMatrix.flat().forEach((b) => (b.canMove = true));
+            }
+            // Final end game check
+            if (model.blockMatrix.length === 0) {
+                state = "end";
             }
         };
 
@@ -256,6 +268,17 @@ export default function Breakout({
             let deltaTime = (time - lastTime) / 1000;
             lastTime = time;
             deltaTime = Math.min(deltaTime, CONSTANTS.GAME_MAX_DELTA_TIME);
+            if (state === "end") {
+                ctx.filter = "brightness(50%)";
+                drawGame();
+                ctx.filter = "none";
+                ctx.fillStyle = "#fff";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.font = `${transform.Y(0.1)}px monospace`;
+                ctx.fillText("Game End", transform.X(0.5), transform.Y(0.5));
+                return;
+            }
             if (state === "pause") {
                 ctx.filter = "brightness(50%)";
                 drawGame();
@@ -281,7 +304,6 @@ export default function Breakout({
 
                 console.log(blockDownStepsCountdown);
                 if (blockDownStepsCountdown <= 0) {
-                    console.log("locking");
                     model.blockMatrix
                         .flat()
                         .forEach((b) => (b.canMove = false));
