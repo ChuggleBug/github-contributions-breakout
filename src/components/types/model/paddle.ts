@@ -66,15 +66,8 @@ export class Paddle extends BreakoutModelElement {
     }
 
     draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform) {
-        ctx.strokeStyle = this.fillColor;
         ctx.fillStyle = this.fillColor;
         ctx.fillRect(
-            transform.X(this.X),
-            transform.Y(this.Y),
-            transform.X(this.width),
-            transform.Y(this.height),
-        );
-        ctx.strokeRect(
             transform.X(this.X),
             transform.Y(this.Y),
             transform.X(this.width),
