@@ -1,4 +1,4 @@
-import type * as types from "./types";
+import type * as types from "./types/properties";
 
 export const DEFAULT_STATE = "pause";
 

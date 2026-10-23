@@ -1,15 +1,15 @@
 import "./breakout.css";
 import { useEffect, useRef } from "react";
 import { type BreakoutStore } from "./useBreakoutStore";
-import {
-    Paddle,
-    Ball,
-    type BreakoutProperties,
-    type BreakoutModel,
-    type State,
-    type Direction,
-    type BreakoutModelElement,
-} from "./types";
+import { Paddle } from "./types/model/paddle";
+import { Ball } from "./types/model/ball";
+import type { BreakoutProperties, BlockGrid } from "./types/properties";
+import type {
+    BreakoutModel,
+    State,
+    Direction,
+    BreakoutModelElement,
+} from "./types/model/core";
 import * as CONSTANTS from "./constants";
 
 import { DEFAULT_STATE, DEFAULTS, rangeSelect } from "./defaults";
@@ -17,6 +17,7 @@ import { DEFAULT_STATE, DEFAULTS, rangeSelect } from "./defaults";
 export type BreakoutProps = {
     height: number;
     width: number;
+    startingBlocks: BlockGrid;
     store?: BreakoutStore;
     properties?: BreakoutProperties;
 };
@@ -27,6 +28,7 @@ const RIGHT_KEYS = ["KeyD", "ArrowRight"];
 export default function Breakout({
     height,
     width,
+    startingBlocks,
     store,
     properties,
 }: BreakoutProps) {

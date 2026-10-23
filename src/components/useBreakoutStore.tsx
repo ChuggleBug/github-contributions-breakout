@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { State } from "./types";
+import type { State } from "./types/properties";
 import { DEFAULT_STATE } from "./defaults";
 
 export type BreakoutStore = {
