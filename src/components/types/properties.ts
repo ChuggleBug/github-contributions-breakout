@@ -42,7 +42,13 @@ export type BallStartState = {
     height?: number;
 };
 
+export type BlockGridProperties = {
+    margin?: number;
+    roundness?: number;
+};
+
 export type BreakoutProperties = {
     paddle?: PaddleStartState;
     ball?: BallStartState;
+    blocks?: BlockGridProperties;
 };

@@ -2,6 +2,7 @@ import type {
     StartingRange,
     PaddleStartState,
     BallStartState,
+    BlockGridProperties,
 } from "./types/properties";
 import type { State } from "./types/model/core";
 
@@ -32,6 +33,9 @@ const BALL_DEFAULT_ANGLE: StartingRange = {
 const BALL_DEFAULT_VELOCITY = 0.5;
 const BALL_DEFAULT_WIDTH = 0.02;
 const BALL_DEFAULT_HEIGHT = 0.02;
+
+const BLOCK_MARGIN = 0.015;
+const BLOCK_ROUNDNESS = 0.2;
 
 export function rangeSelect(option: number | StartingRange): number {
     if (typeof option === "number") {
@@ -67,9 +71,14 @@ export const DEFAULTS = {
         width: BALL_DEFAULT_WIDTH,
         height: BALL_DEFAULT_HEIGHT,
     },
+    block: {
+        margin: BLOCK_MARGIN,
+        roundness: BLOCK_ROUNDNESS,
+    },
 } satisfies {
     paddle: Required<PaddleStartState>;
     ball: Required<BallStartState>;
+    block: Required<BlockGridProperties>;
 };
 
 export default DEFAULTS;

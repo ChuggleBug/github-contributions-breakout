@@ -56,17 +56,17 @@ export default function Breakout({
             return;
         }
 
+        let dpi: number = 1;
         const handleResize = () => {
-            const dpi = window.devicePixelRatio;
-            console.log(dpi);
+            dpi = window.devicePixelRatio || 1;
             canvas.height = canvas.clientHeight * dpi;
             canvas.width = canvas.clientWidth * dpi;
         };
         handleResize();
 
         // Basic Model Transformations (device pixels)
-        const modelToX = (modelX: number) => Math.round(modelX * canvas.width);
-        const modelToY = (modelY: number) => Math.round(modelY * canvas.height);
+        const modelToX = (modelX: number) => modelX * canvas.width;
+        const modelToY = (modelY: number) => modelY * canvas.height;
         const transform = { X: modelToX, Y: modelToY };
 
         // Draw Wrapper
@@ -101,8 +101,12 @@ export default function Breakout({
         };
 
         // Starting State of the model
-        const blockMatrix: Block[][] = [];
+        const blockMargin = properties?.blocks?.margin ?? DEFAULTS.block.margin;
+        const half = blockMargin / 2;
         const blockModelWidth = 1 / startingBlocks.blocksPerRow;
+        const cellHeight = CONSTANTS.GAME_BLOCK_HEIGHT;
+
+        const blockMatrix: Block[][] = [];
         for (
             let i = 0, rowNum = 0;
             i < startingBlocks.blocks.length;
@@ -112,19 +116,49 @@ export default function Breakout({
                 startingBlocks.blocks
                     .slice(i, i + startingBlocks.blocksPerRow)
                     .map((bd, j) => {
+                        const cellX = j * blockModelWidth;
+                        const cellY =
+                            CONSTANTS.BLOCK_STARTING_LEVEL -
+                            rowNum * cellHeight;
+
                         return new Block({
-                            X: j * blockModelWidth,
-                            Y:
-                                CONSTANTS.BLOCK_STARTING_LEVEL -
-                                rowNum * CONSTANTS.GAME_BLOCK_HEIGHT,
-                            width: blockModelWidth,
-                            height: CONSTANTS.GAME_BLOCK_HEIGHT,
+                            X: cellX + half,
+                            Y: cellY + half,
+                            width: blockModelWidth - blockMargin,
+                            height: cellHeight - blockMargin,
                             level: bd.level,
                             fillColor: colors.blocks,
+                            roundness:
+                                properties?.blocks?.roundness ??
+                                DEFAULTS.block.roundness,
                         });
                     }),
             );
         }
+
+        // Printing
+        blockMatrix
+            .flat()
+            .map((e) => {
+                return {
+                    X: transform.X(e.X),
+                    Y: transform.Y(e.Y),
+                    W: transform.X(e.width),
+                    H: transform.Y(e.height),
+                };
+            })
+            .sort((a) => {
+                return a.Y;
+            })
+            .map((e) => {
+                return {
+                    ...e,
+                    B: e.Y + e.H,
+                };
+            })
+            .forEach((e) => {
+                console.log(e);
+            });
 
         let model: BreakoutModel = {
             paddle: new Paddle({
