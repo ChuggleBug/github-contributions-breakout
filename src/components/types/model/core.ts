@@ -90,5 +90,6 @@ export abstract class BreakoutModelElement {
 export type BreakoutModel = {
     paddle: Paddle;
     ball: Ball;
-    blocks: Block[][];
+    activeBlocks: Block[][];
+    blockQueue: Block[][];
 };

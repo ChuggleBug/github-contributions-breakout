@@ -54,8 +54,11 @@ export class Paddle extends BreakoutModelElement {
 
     protected checkObjectBounds() {
         const hit = wallHits(this.bounds());
-        if (hit.left) this.X = 0;
-        else if (hit.right) this.X = 1 - this.width;
+        if (hit.left) {
+            this.X = 0;
+        } else if (hit.right) {
+            this.X = 1 - this.width;
+        }
         return hit;
     }
 
