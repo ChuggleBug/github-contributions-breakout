@@ -9,17 +9,17 @@ const PADDLE_DEFAULT_Y_SPEED = 0;
 const PADDLE_DEFAULT_WIDTH = 0.2;
 const PADDLE_DEFAULT_HEIGHT = 0.01;
 
-// const BALL_DEFAULT_X = 0.5;
-// const BALL_DEFAULT_Y = 0.5;
-// const BALL_DEFAULT_ANGLE = 90;
-const BALL_DEFAULT_X: types.StartingRange = {
-    min: 0.4,
-    max: 0.6,
-};
-const BALL_DEFAULT_Y: types.StartingRange = {
-    min: 0.45,
-    max: 0.55,
-};
+const BALL_DEFAULT_X = 0.5;
+const BALL_DEFAULT_Y = 0.45;
+// const BALL_DEFAULT_ANGLE = 270;
+// const BALL_DEFAULT_X: types.StartingRange = {
+//     min: 0.4,
+//     max: 0.6,
+// };
+// const BALL_DEFAULT_Y: types.StartingRange = {
+//     min: 0.45,
+//     max: 0.55,
+// };
 const BALL_DEFAULT_ANGLE: types.StartingRange = {
     min: 210,
     max: 330,
@@ -29,10 +29,18 @@ const BALL_DEFAULT_WIDTH = 0.02;
 const BALL_DEFAULT_HEIGHT = 0.02;
 
 export function rangeSelect(option: number | types.StartingRange): number {
-    return typeof option === "number"
-        ? option
-        : Math.floor(Math.random() * (option.max - option.min + 1)) +
-              option.min;
+    if (typeof option === "number") return option;
+
+    const lo = Math.min(option.min, option.max);
+    const hi = Math.max(option.min, option.max);
+
+    // Both bounds are integers: return an integer, inclusive of both ends
+    if (Number.isInteger(lo) && Number.isInteger(hi)) {
+        return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+    }
+
+    // Otherwise: return a float between the bounds
+    return Math.random() * (hi - lo) + lo;
 }
 
 export const DEFAULTS = {
