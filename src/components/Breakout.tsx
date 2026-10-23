@@ -304,22 +304,13 @@ export default function Breakout({
                 objects.forEach((e) => e.checkBounds());
 
                 // Block Steps
-                if (blockDownStepsCountdown === 0) {
-                    console.log("stop moving");
-                    console.log("status", model.blockMatrix.length);
-                    model.blockMatrix[0]
-                        .map((b) => {
-                            return { Y: b.Y, level: b.level };
-                        })
-                        .forEach((b) => console.log(b));
-
-                    model.blockMatrix
-                        .flat()
-                        .forEach((b) => (b.canMove = false));
-                    blockDownStepsCountdown = -1;
-                } else if (blockDownStepsCountdown === -1) {
-                } else {
+                if (blockDownStepsCountdown > 0) {
                     blockDownStepsCountdown -= 1;
+                    if (blockDownStepsCountdown === 0) {
+                        model.blockMatrix
+                            .flat()
+                            .forEach((b) => (b.canMove = false));
+                    }
                 }
 
                 // Collisions
