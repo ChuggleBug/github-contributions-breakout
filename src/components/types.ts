@@ -25,8 +25,8 @@ export type StartingRange = {
 
 export type BallStartState = {
     // Again, these are the CENTER of the ball
-    X?: number;
-    Y?: number;
+    X?: number | StartingRange;
+    Y?: number | StartingRange;
     velocity?: number;
     // Starting angle of the ball on using the regular Cartesean plane
     // Converting the angle to the canvas coordiante system is handled upon init
@@ -288,7 +288,6 @@ export class Ball extends BreakoutModelElement {
         return Math.min(hi, Math.max(lo, v));
     }
 
-    // inside class Ball
     private handlePaddleCollision(paddle: Paddle): void {
         const ball = this.bounds();
         const pad = paddle.bounds();
@@ -336,10 +335,10 @@ export class Ball extends BreakoutModelElement {
         ); // -1 left edge .. 1 right edge
         let deg = offset * CONSTANTS.BALL_PADDLE_MAX_BOUNCE_DEG;
 
-        // 5. Nudge in the direction the paddle is travelling
-        if (paddle.direction === "left") deg -= CONSTANTS.BALL_PADDLE_NUDGE_DEG;
-        else if (paddle.direction === "right")
-            deg += CONSTANTS.BALL_PADDLE_NUDGE_DEG;
+        // 5. Nudge only if the paddle is actually moving in that direction
+        const moving = paddle.direction;
+        if (moving === "left") deg -= CONSTANTS.BALL_PADDLE_NUDGE_DEG;
+        else if (moving === "right") deg += CONSTANTS.BALL_PADDLE_NUDGE_DEG;
 
         deg = Ball.clamp(
             deg,

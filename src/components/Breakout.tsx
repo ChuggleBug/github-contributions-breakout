@@ -36,47 +36,51 @@ export default function Breakout({
         storeRef.current = store;
     }, [store]);
 
-    // Basic Model Transformations
-    const modelToX = (modelX: number) => {
-        return modelX * width;
-    };
-    const modelToY = (modelY: number) => {
-        return modelY * height;
-    };
-
-    const makeBall = () => {
-        // BallStartState.angleDeg can be either a
-        // range or a number, so a single number needs
-        //  to be resolved during construction
-        const angleDegSafe =
-            properties?.ball?.angleDeg ?? DEFAULTS.ball.angleDeg;
-
-        const ball = new Ball({
-            ...DEFAULTS.ball,
-            ...properties?.ball,
-            angleDeg: rangeSelect(angleDegSafe),
-        });
-        // Convert ball to real coordinates
-        ball.X -= ball.width / 2;
-        ball.Y -= ball.height / 2;
-        ball.angleDeg = (360 - ball.angleDeg) % 360;
-        return ball;
-    };
-
-    // Starting State of the model
-    let model: BreakoutModel = {
-        paddle: new Paddle({
-            ...DEFAULTS.paddle,
-            ...properties?.paddle,
-        }),
-        ball: makeBall(),
-    };
-    // Convert paddle to real coordinates
-    model.paddle.X -= model.paddle.width / 2;
-    model.paddle.Y -= model.paddle.height / 2;
-    // TODO: Bounds check initial state
-
     useEffect(() => {
+        // Basic Model Transformations
+        const modelToX = (modelX: number) => {
+            return modelX * width;
+        };
+        const modelToY = (modelY: number) => {
+            return modelY * height;
+        };
+
+        const makeBall = () => {
+            // BallStartState.angleDeg can be either a
+            // range or a number, so a single number needs
+            //  to be resolved during construction
+            const angleDegSafe =
+                properties?.ball?.angleDeg ?? DEFAULTS.ball.angleDeg;
+            const XSafe = properties?.ball?.X ?? DEFAULTS.ball.X;
+            const YSafe = properties?.ball?.Y ?? DEFAULTS.ball.Y;
+
+            const ball = new Ball({
+                ...DEFAULTS.ball,
+                ...properties?.ball,
+                X: rangeSelect(XSafe),
+                Y: rangeSelect(YSafe),
+                angleDeg: rangeSelect(angleDegSafe),
+            });
+            // Convert ball to real coordinates
+            ball.X -= ball.width / 2;
+            ball.Y -= ball.height / 2;
+            ball.angleDeg = (360 - ball.angleDeg) % 360;
+            return ball;
+        };
+
+        // Starting State of the model
+        let model: BreakoutModel = {
+            paddle: new Paddle({
+                ...DEFAULTS.paddle,
+                ...properties?.paddle,
+            }),
+            ball: makeBall(),
+        };
+        // Convert paddle to real coordinates
+        model.paddle.X -= model.paddle.width / 2;
+        model.paddle.Y -= model.paddle.height / 2;
+        // TODO: Bounds check initial state
+
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext("2d");
         if (!canvas || !ctx) return;
