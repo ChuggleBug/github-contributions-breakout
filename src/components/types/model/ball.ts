@@ -10,6 +10,7 @@ export type BallModel = {
     angleDeg: number;
     width: number;
     height: number;
+    fillColor: string;
 };
 
 export class Ball extends BreakoutModelElement {
@@ -19,6 +20,7 @@ export class Ball extends BreakoutModelElement {
     angleDeg: number;
     width: number;
     height: number;
+    fillColor: string;
 
     constructor({ ...params }: BallModel) {
         super();
@@ -28,6 +30,7 @@ export class Ball extends BreakoutModelElement {
         this.angleDeg = params.angleDeg;
         this.width = params.width;
         this.height = params.height;
+        this.fillColor = params.fillColor;
     }
 
     protected moveObject(dt: number) {
@@ -77,9 +80,15 @@ export class Ball extends BreakoutModelElement {
     }
 
     draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform) {
-        ctx.fillStyle = "#FF0000";
-        ctx.fillStyle;
+        ctx.strokeStyle = this.fillColor;
+        ctx.fillStyle = this.fillColor;
         ctx.fillRect(
+            transform.X(this.X),
+            transform.Y(this.Y),
+            transform.X(this.width),
+            transform.Y(this.height),
+        );
+        ctx.strokeRect(
             transform.X(this.X),
             transform.Y(this.Y),
             transform.X(this.width),

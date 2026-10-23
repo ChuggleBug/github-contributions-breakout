@@ -8,6 +8,7 @@ export type PaddleModel = {
     YSpeed: number;
     width: number;
     height: number;
+    fillColor: string;
 };
 
 export class Paddle extends BreakoutModelElement {
@@ -19,6 +20,7 @@ export class Paddle extends BreakoutModelElement {
     height: number;
 
     direction: Direction = "none";
+    fillColor: string;
 
     constructor({ ...params }: PaddleModel) {
         super();
@@ -28,6 +30,7 @@ export class Paddle extends BreakoutModelElement {
         this.YSpeed = params.YSpeed;
         this.width = params.width;
         this.height = params.height;
+        this.fillColor = params.fillColor;
     }
 
     protected moveObject(dt: number) {
@@ -63,8 +66,15 @@ export class Paddle extends BreakoutModelElement {
     }
 
     draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform) {
-        ctx.fillStyle = "#FFFFFF";
+        ctx.strokeStyle = this.fillColor;
+        ctx.fillStyle = this.fillColor;
         ctx.fillRect(
+            transform.X(this.X),
+            transform.Y(this.Y),
+            transform.X(this.width),
+            transform.Y(this.height),
+        );
+        ctx.strokeRect(
             transform.X(this.X),
             transform.Y(this.Y),
             transform.X(this.width),

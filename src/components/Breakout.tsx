@@ -10,6 +10,11 @@ import type {
     Direction,
     BreakoutModelElement,
 } from "./types/model/core";
+import {
+    pallateFactory,
+    type BreakoutColorPalatte,
+    type ColorPalette,
+} from "./palettes/types";
 import * as CONSTANTS from "./constants";
 
 import { DEFAULT_STATE, DEFAULTS, rangeSelect } from "./defaults";
@@ -21,6 +26,8 @@ export type BreakoutProps = {
     startingBlocks: BlockGrid;
     store?: BreakoutStore;
     properties?: BreakoutProperties;
+    palette?: BreakoutColorPalatte;
+    customPalette?: ColorPalette;
 };
 
 const LEFT_KEYS = ["KeyA", "ArrowLeft"];
@@ -32,23 +39,42 @@ export default function Breakout({
     startingBlocks,
     store,
     properties,
+    palette = "default",
+    customPalette,
 }: BreakoutProps) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const storeRef = useRef(store);
-    const gameWidth = width;
-    const gameHeight = height;
     useEffect(() => {
         storeRef.current = store;
     }, [store]);
 
     useEffect(() => {
-        // Basic Model Transformations
-        const modelToX = (modelX: number) => {
-            return modelX * gameWidth;
+        // Canvas Initialization and adjustments
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext("2d");
+        if (!canvas || !ctx) {
+            return;
+        }
+
+        const handleResize = () => {
+            const dpi = window.devicePixelRatio;
+            console.log(dpi);
+            canvas.height = canvas.clientHeight * dpi;
+            canvas.width = canvas.clientWidth * dpi;
         };
-        const modelToY = (modelY: number) => {
-            return modelY * gameHeight;
+        handleResize();
+
+        // Basic Model Transformations (device pixels)
+        const modelToX = (modelX: number) => Math.round(modelX * canvas.width);
+        const modelToY = (modelY: number) => Math.round(modelY * canvas.height);
+        const transform = { X: modelToX, Y: modelToY };
+
+        // Draw Wrapper
+        const drawObject = (e: BreakoutModelElement) => {
+            e.draw(ctx, transform);
         };
+
+        const colors = pallateFactory(palette, customPalette);
 
         const makeBall = () => {
             // BallStartState.angleDeg can be either a
@@ -65,6 +91,7 @@ export default function Breakout({
                 X: rangeSelect(XSafe),
                 Y: rangeSelect(YSafe),
                 angleDeg: rangeSelect(angleDegSafe),
+                fillColor: colors.ball,
             });
             // Convert ball to real coordinates
             ball.X -= ball.width / 2;
@@ -75,7 +102,7 @@ export default function Breakout({
 
         // Starting State of the model
         const blockMatrix: Block[][] = [];
-        const blockModelWidth = gameWidth / startingBlocks.blocksPerRow;
+        const blockModelWidth = 1 / startingBlocks.blocksPerRow;
         for (
             let i = 0, rowNum = 0;
             i < startingBlocks.blocks.length;
@@ -93,6 +120,7 @@ export default function Breakout({
                             width: blockModelWidth,
                             height: CONSTANTS.GAME_BLOCK_HEIGHT,
                             level: bd.level,
+                            fillColor: colors.blocks,
                         });
                     }),
             );
@@ -102,6 +130,7 @@ export default function Breakout({
             paddle: new Paddle({
                 ...DEFAULTS.paddle,
                 ...properties?.paddle,
+                fillColor: colors.paddle,
             }),
             ball: makeBall(),
             blockMatrix: blockMatrix,
@@ -110,12 +139,6 @@ export default function Breakout({
         model.paddle.X -= model.paddle.width / 2;
         model.paddle.Y -= model.paddle.height / 2;
         // TODO: Bounds check initial state
-
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext("2d");
-        if (!canvas || !ctx) {
-            return;
-        }
 
         let frameCount = 0;
         let score = 0;
@@ -155,14 +178,11 @@ export default function Breakout({
         canvas.addEventListener("blur", handleBlur);
         canvas.addEventListener("focus", handleFocus);
 
+        window.addEventListener("resize", handleResize);
+
         // Time
         let lastTime: number | null = null;
         let playTime: number = 0;
-
-        // Draw Wrapper
-        const drawObject = (e: BreakoutModelElement) => {
-            e.draw(ctx, { X: modelToX, Y: modelToY });
-        };
 
         const getDirection = () => {
             let direction: Direction = "none";
@@ -230,8 +250,11 @@ export default function Breakout({
                 }
 
                 // Drawing
-                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                objects.forEach((e) => drawObject(e));
+                ctx.fillStyle = colors.background;
+                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                objects.forEach((e) => {
+                    drawObject(e);
+                });
 
                 // TOOD: Modify this
                 score = Math.floor(playTime);
@@ -253,17 +276,18 @@ export default function Breakout({
             canvas.removeEventListener("pointerdown", handlePointerDown);
             canvas.removeEventListener("blur", handleBlur);
             canvas.removeEventListener("focus", handleFocus);
+            window.removeEventListener("resize", handleResize);
         };
     }, []);
 
     return (
+        // height and width attributes handled inside of game init loop
         <canvas
             tabIndex={0}
             className="breakout"
             ref={canvasRef}
             id="breakout"
-            height={height}
-            width={width}
+            style={{ width, height }}
         ></canvas>
     );
 }

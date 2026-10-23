@@ -29,7 +29,9 @@ const BALL_DEFAULT_WIDTH = 0.02;
 const BALL_DEFAULT_HEIGHT = 0.02;
 
 export function rangeSelect(option: number | types.StartingRange): number {
-    if (typeof option === "number") return option;
+    if (typeof option === "number") {
+        return option;
+    }
 
     const lo = Math.min(option.min, option.max);
     const hi = Math.max(option.min, option.max);
