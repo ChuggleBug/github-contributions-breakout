@@ -13,6 +13,7 @@ import type {
 import * as CONSTANTS from "./constants";
 
 import { DEFAULT_STATE, DEFAULTS, rangeSelect } from "./defaults";
+import { Block } from "./types/model/block";
 
 export type BreakoutProps = {
     height: number;
@@ -34,6 +35,8 @@ export default function Breakout({
 }: BreakoutProps) {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const storeRef = useRef(store);
+    const gameWidth = width;
+    const gameHeight = height;
     useEffect(() => {
         storeRef.current = store;
     }, [store]);
@@ -41,10 +44,10 @@ export default function Breakout({
     useEffect(() => {
         // Basic Model Transformations
         const modelToX = (modelX: number) => {
-            return modelX * width;
+            return modelX * gameWidth;
         };
         const modelToY = (modelY: number) => {
-            return modelY * height;
+            return modelY * gameHeight;
         };
 
         const makeBall = () => {
@@ -71,12 +74,37 @@ export default function Breakout({
         };
 
         // Starting State of the model
+        const blockMatrix: Block[][] = [];
+        const blockModelWidth = gameWidth / startingBlocks.blocksPerRow;
+        for (
+            let i = 0, rowNum = 0;
+            i < startingBlocks.blocks.length;
+            i += startingBlocks.blocksPerRow, rowNum += 1
+        ) {
+            blockMatrix.push(
+                startingBlocks.blocks
+                    .slice(i, i + startingBlocks.blocksPerRow)
+                    .map((bd, j) => {
+                        return new Block({
+                            X: j * blockModelWidth,
+                            Y:
+                                CONSTANTS.BLOCK_STARTING_LEVEL -
+                                rowNum * CONSTANTS.GAME_BLOCK_HEIGHT,
+                            width: blockModelWidth,
+                            height: CONSTANTS.GAME_BLOCK_HEIGHT,
+                            level: bd.level,
+                        });
+                    }),
+            );
+        }
+
         let model: BreakoutModel = {
             paddle: new Paddle({
                 ...DEFAULTS.paddle,
                 ...properties?.paddle,
             }),
             ball: makeBall(),
+            blockMatrix: blockMatrix,
         };
         // Convert paddle to real coordinates
         model.paddle.X -= model.paddle.width / 2;
@@ -85,7 +113,9 @@ export default function Breakout({
 
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext("2d");
-        if (!canvas || !ctx) return;
+        if (!canvas || !ctx) {
+            return;
+        }
 
         let frameCount = 0;
         let score = 0;
@@ -98,8 +128,9 @@ export default function Breakout({
         const handleKeyDown = (e: KeyboardEvent) => {
             keySet.add(e.code);
             // stop page scrolling
-            if (e.code.startsWith("Arrow") || e.code === "Space")
+            if (e.code.startsWith("Arrow") || e.code === "Space") {
                 e.preventDefault();
+            }
         };
         const handleKeyUp = (e: KeyboardEvent) => {
             keySet.delete(e.code);
@@ -155,7 +186,12 @@ export default function Breakout({
             return direction;
         };
 
-        let objects = new Set<BreakoutModelElement>([model.paddle, model.ball]);
+        let objects = new Set<BreakoutModelElement>([
+            model.paddle,
+            model.ball,
+            ...model.blockMatrix.flat(),
+        ]);
+
         const render = (time: number) => {
             if (lastTime === null) {
                 lastTime = time;
@@ -177,7 +213,11 @@ export default function Breakout({
                 if (model.ball.collides(model.paddle)) {
                     model.ball.handleCollision(model.paddle);
                 }
-
+                for (const block of model.blockMatrix.flat()) {
+                    if (model.ball.collides(block)) {
+                        model.ball.handleCollision(block);
+                    }
+                }
                 // Ball Deletion, and respawn logic
                 if (objects.has(model.ball) && model.ball.boundHits.bottom) {
                     objects.delete(model.ball);
@@ -186,7 +226,7 @@ export default function Breakout({
                     model.ball.canMove = false;
                     setTimeout(() => {
                         model.ball.canMove = true;
-                    }, 1000);
+                    }, CONSTANTS.GAME_BALL_RESPAWN_TIME_MS);
                 }
 
                 // Drawing

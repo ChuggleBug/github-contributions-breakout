@@ -46,7 +46,9 @@ export class Ball extends BreakoutModelElement {
 
     protected checkObjectBounds() {
         const hit = wallHits(this.bounds());
-        if (!hit.left && !hit.right && !hit.top && !hit.bottom) return hit;
+        if (!hit.left && !hit.right && !hit.top && !hit.bottom) {
+            return hit;
+        }
 
         // Work in velocity components so reflection is simple
         const rad = (this.angleDeg * Math.PI) / 180;
@@ -104,7 +106,9 @@ export class Ball extends BreakoutModelElement {
             Math.min(ball.x + ball.w, pad.x + pad.w) - Math.max(ball.x, pad.x);
         const overlapY =
             Math.min(ball.y + ball.h, pad.y + pad.h) - Math.max(ball.y, pad.y);
-        if (overlapX <= 0 || overlapY <= 0) return; // not actually touching
+        if (overlapX <= 0 || overlapY <= 0) {
+            return;
+        } // not actually touching
 
         const ballCenterX = ball.x + ball.w / 2;
         const padCenterX = pad.x + pad.w / 2;
@@ -144,8 +148,11 @@ export class Ball extends BreakoutModelElement {
 
         // 5. Nudge only if the paddle is actually moving in that direction
         const moving = paddle.direction;
-        if (moving === "left") deg -= CONSTANTS.BALL_PADDLE_NUDGE_DEG;
-        else if (moving === "right") deg += CONSTANTS.BALL_PADDLE_NUDGE_DEG;
+        if (moving === "left") {
+            deg -= CONSTANTS.BALL_PADDLE_NUDGE_DEG;
+        } else if (moving === "right") {
+            deg += CONSTANTS.BALL_PADDLE_NUDGE_DEG;
+        }
 
         deg = Ball.clamp(
             deg,

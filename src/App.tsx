@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import useBreakoutStore, {
     type BreakoutStore,
 } from "./components/useBreakoutStore";
+import type { BlockData, BlockGrid } from "./components/types/properties";
 
 function App() {
     const store: BreakoutStore = useBreakoutStore();
@@ -18,6 +19,15 @@ function App() {
         return () => clearInterval(id);
     }, []);
 
+    const range = (start: number, end: number) =>
+        Array.from({ length: end - start + 1 }, (_, i) => i + start);
+    const blocks: BlockGrid = {
+        blocksPerRow: 7,
+        blocks: range(1, 14).map(() => {
+            return { level: 2 };
+        }),
+    };
+
     return (
         <div
             style={{
@@ -29,7 +39,12 @@ function App() {
                 justifyContent: "center",
             }}
         >
-            <Breakout height={500} width={500} store={store} />
+            <Breakout
+                height={500}
+                width={500}
+                store={store}
+                startingBlocks={blocks}
+            />
             <div>Score: {store.score}</div>
             <div>Time: {seconds}</div>
             <div>{store.state}</div>
