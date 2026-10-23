@@ -11,7 +11,7 @@ import type {
     BreakoutModelElement,
 } from "./types/model/core";
 import {
-    pallateFactory,
+    paletteFactory,
     type BreakoutColorPalatte,
     type ColorPalette,
 } from "./palettes/types";
@@ -74,7 +74,7 @@ export default function Breakout({
             e.draw(ctx, transform);
         };
 
-        const colors = pallateFactory(palette, customPalette);
+        const colors = paletteFactory(palette, customPalette);
 
         const makeBall = () => {
             // BallStartState.angleDeg can be either a
