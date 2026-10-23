@@ -12,12 +12,20 @@ const PADDLE_DEFAULT_HEIGHT = 0.01;
 const BALL_DEFAULT_X = 0.5;
 const BALL_DEFAULT_Y = 0.5;
 const BALL_DEFAULT_VELOCITY = 0.5;
-const BALL_DEFAULT_ANGLE_RANGE: types.BallStartAngleDegRange = {
+const BALL_DEFAULT_ANGLE: types.StartingRange = {
     min: 210,
     max: 330,
 };
+// const BALL_DEFAULT_ANGLE = 90;
 const BALL_DEFAULT_WIDTH = 0.02;
 const BALL_DEFAULT_HEIGHT = 0.02;
+
+export function rangeSelect(option: number | types.StartingRange): number {
+    return typeof option === "number"
+        ? option
+        : Math.floor(Math.random() * (option.max - option.min + 1)) +
+              option.min;
+}
 
 export const DEFAULTS = {
     paddle: {
@@ -32,7 +40,7 @@ export const DEFAULTS = {
         X: BALL_DEFAULT_X,
         Y: BALL_DEFAULT_Y,
         velocity: BALL_DEFAULT_VELOCITY,
-        angleDeg: BALL_DEFAULT_ANGLE_RANGE,
+        angleDeg: BALL_DEFAULT_ANGLE,
         width: BALL_DEFAULT_WIDTH,
         height: BALL_DEFAULT_HEIGHT,
     },

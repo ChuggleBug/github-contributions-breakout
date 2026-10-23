@@ -10,8 +10,9 @@ import {
     type Direction,
     type BreakoutModelElement,
 } from "./types";
+import * as CONSTANTS from "./constants";
 
-import { DEFAULT_STATE, DEFAULTS } from "./defaults";
+import { DEFAULT_STATE, DEFAULTS, rangeSelect } from "./defaults";
 
 export type BreakoutProps = {
     height: number;
@@ -49,17 +50,11 @@ export default function Breakout({
         //  to be resolved during construction
         const angleDegSafe =
             properties?.ball?.angleDeg ?? DEFAULTS.ball.angleDeg;
-        const resolveAngleDeg =
-            typeof angleDegSafe === "number"
-                ? angleDegSafe
-                : Math.floor(
-                      Math.random() * (angleDegSafe.max - angleDegSafe.min + 1),
-                  ) + angleDegSafe.min;
 
         const ball = new Ball({
             ...DEFAULTS.ball,
             ...properties?.ball,
-            angleDeg: resolveAngleDeg,
+            angleDeg: rangeSelect(angleDegSafe),
         });
         // Convert ball to real coordinates
         ball.X -= ball.width / 2;
@@ -126,7 +121,6 @@ export default function Breakout({
         // Time
         let lastTime: number | null = null;
         let playTime: number = 0;
-        const MAX_DELTA_TIME: number = 0.05;
 
         // Draw Wrapper
         const drawObject = (e: BreakoutModelElement) => {
@@ -162,7 +156,7 @@ export default function Breakout({
             }
             let deltaTime = (time - lastTime) / 1000;
             lastTime = time;
-            deltaTime = Math.min(deltaTime, MAX_DELTA_TIME);
+            deltaTime = Math.min(deltaTime, CONSTANTS.GAME_MAX_DELTA_TIME);
 
             if (state === "pause") {
             } else if (state === "play") {
@@ -172,6 +166,11 @@ export default function Breakout({
                 model.paddle.direction = getDirection();
                 objects.forEach((e) => e.move(deltaTime));
                 objects.forEach((e) => e.checkBounds());
+
+                // Collisions
+                if (model.ball.collides(model.paddle)) {
+                    model.ball.handleCollision(model.paddle);
+                }
 
                 // Ball Deletion, and respawn logic
                 if (objects.has(model.ball) && model.ball.boundHits.bottom) {

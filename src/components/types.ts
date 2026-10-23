@@ -1,3 +1,5 @@
+import * as CONSTANTS from "./constants";
+
 export type State = "pause" | "play";
 export type Direction = "left" | "right" | "none";
 
@@ -16,7 +18,7 @@ export type PaddleStartState = {
     width?: number;
 };
 
-export type BallStartAngleDegRange = {
+export type StartingRange = {
     min: number;
     max: number;
 };
@@ -28,7 +30,7 @@ export type BallStartState = {
     velocity?: number;
     // Starting angle of the ball on using the regular Cartesean plane
     // Converting the angle to the canvas coordiante system is handled upon init
-    angleDeg?: number | BallStartAngleDegRange;
+    angleDeg?: number | StartingRange;
     width?: number;
     height?: number;
 };
@@ -102,6 +104,20 @@ export abstract class BreakoutModelElement {
     set canMove(move: boolean) {
         this.doMove = move;
     }
+
+    collides(other: BreakoutModelElement): boolean {
+        const a = this.bounds();
+        const b = other.bounds();
+        return (
+            a.x < b.x + b.w &&
+            a.x + a.w > b.x &&
+            a.y < b.y + b.h &&
+            a.y + a.h > b.y
+        );
+    }
+
+    // @ts-ignore
+    handleCollision(element: BreakoutModelElement): void {}
 
     abstract bounds(): BoundingBox;
     move(dt: number) {
@@ -260,5 +276,80 @@ export class Ball extends BreakoutModelElement {
             transform.X(this.width),
             transform.Y(this.height),
         );
+    }
+
+    handleCollision(element: BreakoutModelElement): void {
+        if (element instanceof Paddle) {
+            this.handlePaddleCollision(element);
+        }
+    }
+
+    private static clamp(v: number, lo: number, hi: number) {
+        return Math.min(hi, Math.max(lo, v));
+    }
+
+    // inside class Ball
+    private handlePaddleCollision(paddle: Paddle): void {
+        const ball = this.bounds();
+        const pad = paddle.bounds();
+
+        // 1. Penetration depth on each axis
+        const overlapX =
+            Math.min(ball.x + ball.w, pad.x + pad.w) - Math.max(ball.x, pad.x);
+        const overlapY =
+            Math.min(ball.y + ball.h, pad.y + pad.h) - Math.max(ball.y, pad.y);
+        if (overlapX <= 0 || overlapY <= 0) return; // not actually touching
+
+        const ballCenterX = ball.x + ball.w / 2;
+        const padCenterX = pad.x + pad.w / 2;
+
+        // Current velocity direction (y grows downward, so "up" is negative y)
+        const rad = (this.angleDeg * Math.PI) / 180;
+        const vx = Math.cos(rad);
+        const vy = Math.sin(rad);
+
+        // 2. Side hit: the ball clipped the paddle's end rather than landing on top
+        if (overlapX < overlapY) {
+            const dir = ballCenterX < padCenterX ? -1 : 1; // which side the ball is on
+            const pushedX = dir < 0 ? pad.x - this.width : pad.x + pad.w;
+            const fitsInWorld = pushedX >= 0 && pushedX + this.width <= 1;
+
+            if (fitsInWorld) {
+                this.X = pushedX; // eject sideways
+                this.setDirection(dir * Math.abs(vx), vy); // head away from the paddle
+                return;
+            }
+            // Sandwiched between paddle and wall: no room to the side,
+            // so fall through and launch it over the top of the paddle instead.
+        } else if (vy <= 0) {
+            // 3. Top overlap but already moving up: it already bounced, don't re-bounce
+            return;
+        }
+
+        // 4. Top bounce
+        this.Y = pad.y - this.height; // sit exactly on top of the paddle
+
+        const offset = Ball.clamp(
+            (ballCenterX - padCenterX) / (pad.w / 2),
+            -1,
+            1,
+        ); // -1 left edge .. 1 right edge
+        let deg = offset * CONSTANTS.BALL_PADDLE_MAX_BOUNCE_DEG;
+
+        // 5. Nudge in the direction the paddle is travelling
+        if (paddle.direction === "left") deg -= CONSTANTS.BALL_PADDLE_NUDGE_DEG;
+        else if (paddle.direction === "right")
+            deg += CONSTANTS.BALL_PADDLE_NUDGE_DEG;
+
+        deg = Ball.clamp(
+            deg,
+            -CONSTANTS.BALL_PADDLE_MAX_TOTAL_DEG,
+            CONSTANTS.BALL_PADDLE_MAX_TOTAL_DEG,
+        );
+        this.angleDeg = -90 + deg; // -90 = straight up
+    }
+
+    private setDirection(vx: number, vy: number): void {
+        this.angleDeg = (Math.atan2(vy, vx) * 180) / Math.PI;
     }
 }
