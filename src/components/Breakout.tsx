@@ -212,6 +212,14 @@ export default function Breakout({
             ...model.blockMatrix.flat(),
         ]);
 
+        const drawGame = () => {
+            ctx.fillStyle = colors.background;
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            objects.forEach((e) => {
+                drawObject(e);
+            });
+        };
+
         const render = (time: number) => {
             if (lastTime === null) {
                 lastTime = time;
@@ -219,8 +227,20 @@ export default function Breakout({
             let deltaTime = (time - lastTime) / 1000;
             lastTime = time;
             deltaTime = Math.min(deltaTime, CONSTANTS.GAME_MAX_DELTA_TIME);
-
             if (state === "pause") {
+                ctx.filter = "brightness(50%)";
+                drawGame();
+                ctx.filter = "none";
+                ctx.fillStyle = "#fff";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.font = `${transform.Y(0.1)}px monospace`;
+                ctx.fillText("Paused", transform.X(0.5), transform.Y(0.5));
+            } else if (state === "start") {
+                // Only draw all the elements
+                ctx.filter = "brightness(50%)";
+                drawGame();
+                ctx.filter = "none";
             } else if (state === "play") {
                 playTime += deltaTime;
 
@@ -250,11 +270,7 @@ export default function Breakout({
                 }
 
                 // Drawing
-                ctx.fillStyle = colors.background;
-                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                objects.forEach((e) => {
-                    drawObject(e);
-                });
+                drawGame();
 
                 // TOOD: Modify this
                 score = Math.floor(playTime);

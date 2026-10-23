@@ -1,6 +1,11 @@
-import type * as types from "./types/properties";
+import type {
+    StartingRange,
+    PaddleStartState,
+    BallStartState,
+} from "./types/properties";
+import type { State } from "./types/model/core";
 
-export const DEFAULT_STATE = "pause";
+export const DEFAULT_STATE: State = "start";
 
 const PADDLE_DEFAULT_X = 0.5;
 const PADDLE_DEFAULT_Y = 0.85;
@@ -12,15 +17,15 @@ const PADDLE_DEFAULT_HEIGHT = 0.01;
 const BALL_DEFAULT_X = 0.5;
 const BALL_DEFAULT_Y = 0.45;
 // const BALL_DEFAULT_ANGLE = 270;
-// const BALL_DEFAULT_X: types.StartingRange = {
+// const BALL_DEFAULT_X: StartingRange = {
 //     min: 0.4,
 //     max: 0.6,
 // };
-// const BALL_DEFAULT_Y: types.StartingRange = {
+// const BALL_DEFAULT_Y: StartingRange = {
 //     min: 0.45,
 //     max: 0.55,
 // };
-const BALL_DEFAULT_ANGLE: types.StartingRange = {
+const BALL_DEFAULT_ANGLE: StartingRange = {
     min: 210,
     max: 330,
 };
@@ -28,7 +33,7 @@ const BALL_DEFAULT_VELOCITY = 0.5;
 const BALL_DEFAULT_WIDTH = 0.02;
 const BALL_DEFAULT_HEIGHT = 0.02;
 
-export function rangeSelect(option: number | types.StartingRange): number {
+export function rangeSelect(option: number | StartingRange): number {
     if (typeof option === "number") {
         return option;
     }
@@ -63,8 +68,8 @@ export const DEFAULTS = {
         height: BALL_DEFAULT_HEIGHT,
     },
 } satisfies {
-    paddle: Required<types.PaddleStartState>;
-    ball: Required<types.BallStartState>;
+    paddle: Required<PaddleStartState>;
+    ball: Required<BallStartState>;
 };
 
 export default DEFAULTS;
