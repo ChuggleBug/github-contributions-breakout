@@ -118,7 +118,7 @@ export default function Breakout({
                     .map((bd, j) => {
                         const cellX = j * blockModelWidth;
                         const cellY =
-                            CONSTANTS.BLOCK_STARTING_LEVEL -
+                            CONSTANTS.GAME_BLOCK_STARTING_LEVEL -
                             rowNum * cellHeight;
 
                         return new Block({
@@ -135,30 +135,6 @@ export default function Breakout({
                     }),
             );
         }
-
-        // Printing
-        blockMatrix
-            .flat()
-            .map((e) => {
-                return {
-                    X: transform.X(e.X),
-                    Y: transform.Y(e.Y),
-                    W: transform.X(e.width),
-                    H: transform.Y(e.height),
-                };
-            })
-            .sort((a) => {
-                return a.Y;
-            })
-            .map((e) => {
-                return {
-                    ...e,
-                    B: e.Y + e.H,
-                };
-            })
-            .forEach((e) => {
-                console.log(e);
-            });
 
         let model: BreakoutModel = {
             paddle: new Paddle({
@@ -211,7 +187,6 @@ export default function Breakout({
         canvas.addEventListener("pointerdown", handlePointerDown);
         canvas.addEventListener("blur", handleBlur);
         canvas.addEventListener("focus", handleFocus);
-
         window.addEventListener("resize", handleResize);
 
         // Time
@@ -254,6 +229,26 @@ export default function Breakout({
             });
         };
 
+        let blockDownStepsCountdown = 0;
+        const filterBlocks = () => {
+            // Check if any blocks are deleted
+            for (const block of [...objects].filter((e) => {
+                return e instanceof Block;
+            })) {
+                if (block.level === 0) {
+                    objects.delete(block);
+                }
+            }
+            // Check if the bottom row is empty
+            if (model.blockMatrix[0].every((b) => !b.alive)) {
+                console.log("moving down");
+                model.blockMatrix = model.blockMatrix.slice(1);
+                blockDownStepsCountdown = CONSTANTS.GAME_BLOCK_DOWN_STEPS;
+                model.blockMatrix.flat().forEach((b) => (b.canMove = true));
+            }
+        };
+
+        filterBlocks();
         const render = (time: number) => {
             if (lastTime === null) {
                 lastTime = time;
@@ -282,16 +277,26 @@ export default function Breakout({
                 model.paddle.direction = getDirection();
                 objects.forEach((e) => e.move(deltaTime));
                 objects.forEach((e) => e.checkBounds());
+                // Block Steps
+
+                console.log(blockDownStepsCountdown);
+                if (blockDownStepsCountdown <= 0) {
+                    console.log("locking");
+                    model.blockMatrix
+                        .flat()
+                        .forEach((b) => (b.canMove = false));
+                } else {
+                    blockDownStepsCountdown -= 1;
+                }
 
                 // Collisions
-                if (model.ball.collides(model.paddle)) {
-                    model.ball.handleCollision(model.paddle);
-                }
-                for (const block of model.blockMatrix.flat()) {
-                    if (model.ball.collides(block)) {
-                        model.ball.handleCollision(block);
+                for (const obj of objects) {
+                    if (model.ball.collides(obj)) {
+                        model.ball.handleCollision(obj);
                     }
                 }
+                filterBlocks();
+
                 // Ball Deletion, and respawn logic
                 if (objects.has(model.ball) && model.ball.boundHits.bottom) {
                     objects.delete(model.ball);

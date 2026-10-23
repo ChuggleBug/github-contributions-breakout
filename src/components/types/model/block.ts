@@ -1,6 +1,7 @@
 import { BreakoutModelElement } from "./core";
 import type { BoundingBox, WallHit, AxesModelTransform } from "./core";
 import type { ColorPalette } from "../../palettes/types";
+import { GAME_BLOCK_HEIGHT, GAME_BLOCK_DOWN_STEPS } from "../../constants";
 
 export type BlockModel = {
     X: number;
@@ -30,14 +31,19 @@ export class Block extends BreakoutModelElement {
         this.level = props.level;
         this.fillColor = props.fillColor;
         this.roundness = props.roundness;
+        this.canMove = false;
     }
+
+    get alive() {
+        return this.level > 0;
+    }
+
     bounds(): BoundingBox {
         return { x: this.X, y: this.Y, w: this.width, h: this.height };
     }
 
-    // @ts-ignore
-    protected moveObject(dt: number): void {
-        // TODO: Move down at a fixed rate
+    protected moveObject(_dt: number): void {
+        this.Y += GAME_BLOCK_HEIGHT / GAME_BLOCK_DOWN_STEPS;
     }
 
     protected checkObjectBounds(): WallHit {
@@ -52,7 +58,6 @@ export class Block extends BreakoutModelElement {
     draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform): void {
         const fill = this.fillColor.colorFor(this.level);
         if (fill.length === 0) {
-            console.log("skipping");
             return;
         }
         ctx.fillStyle = fill;

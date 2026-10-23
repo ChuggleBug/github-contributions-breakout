@@ -1,4 +1,5 @@
 import * as CONSTANTS from "../../constants";
+import { Block } from "./block";
 import { BreakoutModelElement, wallHits } from "./core";
 import type { BoundingBox, AxesModelTransform } from "./core";
 import { Paddle } from "./paddle";
@@ -92,7 +93,50 @@ export class Ball extends BreakoutModelElement {
     handleCollision(element: BreakoutModelElement): void {
         if (element instanceof Paddle) {
             this.handlePaddleCollision(element);
+        } else if (element instanceof Block) {
+            this.handleBlockCollision(element);
         }
+    }
+
+    private handleBlockCollision(block: Block): void {
+        const ball = this.bounds();
+        const blk = block.bounds();
+
+        // 1. Penetration depth on each axis
+        const overlapX =
+            Math.min(ball.x + ball.w, blk.x + blk.w) - Math.max(ball.x, blk.x);
+        const overlapY =
+            Math.min(ball.y + ball.h, blk.y + blk.h) - Math.max(ball.y, blk.y);
+        if (overlapX <= 0 || overlapY <= 0) {
+            return;
+        } // not actually touching
+
+        const ballCenterX = ball.x + ball.w / 2;
+        const ballCenterY = ball.y + ball.h / 2;
+        const blkCenterX = blk.x + blk.w / 2;
+        const blkCenterY = blk.y + blk.h / 2;
+
+        const rad = (this.angleDeg * Math.PI) / 180;
+        let vx = Math.cos(rad);
+        let vy = Math.sin(rad);
+
+        // 2. Reflect across the face with the least penetration
+        if (overlapX < overlapY) {
+            // Side hit: vertical face, flip horizontal component
+            const dir = ballCenterX < blkCenterX ? -1 : 1; // which side the ball is on
+            this.X = dir < 0 ? blk.x - this.width : blk.x + blk.w; // push out
+            vx = dir * Math.abs(vx); // can only point away from the block
+        } else {
+            // Top/bottom hit: horizontal face, flip vertical component
+            const dir = ballCenterY < blkCenterY ? -1 : 1; // y grows downward
+            this.Y = dir < 0 ? blk.y - this.height : blk.y + blk.h; // push out
+            vy = dir * Math.abs(vy);
+        }
+
+        this.setDirection(vx, vy);
+
+        // Decrement block counter
+        block.level = Math.max(0, block.level - 1);
     }
 
     private static clamp(v: number, lo: number, hi: number) {
