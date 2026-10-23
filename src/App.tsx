@@ -45,6 +45,7 @@ function App() {
                 width={500}
                 store={store}
                 startingBlocks={blocks}
+                palette="random"
             />
             <div>Score: {store.score}</div>
             <div>Time: {seconds}</div>

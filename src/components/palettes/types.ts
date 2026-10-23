@@ -1,6 +1,8 @@
 import { GITHUB_PALATTE } from "./github_dark";
+import { RANDOM_PALATTE } from "./random";
 
-export type BreakoutColorPalatte = "default" | "custom" | "github_dark";
+export type BreakoutColorPalatte =
+    "default" | "custom" | "github_dark" | "random";
 
 type BaseColorPalette = {
     background: string;
@@ -54,6 +56,8 @@ function pallateSelector(
             }
             return custom;
         }
+        case "random":
+            return RANDOM_PALATTE;
         case "github_dark":
         default:
             return GITHUB_PALATTE;
