@@ -1,7 +1,8 @@
 import type { ColorPalette } from "./types";
 import { MemoColorLevelFunction } from "./color_function";
-const baseTable = {
-    0: "#151b23",
+
+const baseTable: Record<number, string> = {
+    0: "",
     1: "#033a16",
     2: "#196c2e",
     3: "#2ea043",
@@ -14,13 +15,12 @@ function colorSelect(level: number): string {
     } else if (level >= 4) {
         return baseTable[4];
     }
-    // @ts-ignore
     return baseTable[level];
 }
 
 export const GITHUB_PALATTE: ColorPalette = {
     background: "#0d1117",
-    paddle: "#3d444d",
+    paddle: "#ffffff",
     ball: "#ffffff",
     blocks: new MemoColorLevelFunction(colorSelect),
 };
