@@ -65,8 +65,10 @@ export default function Breakout({
         handleResize();
 
         // Basic Model Transformations (device pixels)
-        const modelToX = (modelX: number) => modelX * canvas.width;
-        const modelToY = (modelY: number) => modelY * canvas.height;
+        const modelToX = (modelX: number) =>
+            Math.floor(+modelX.toFixed(5) * canvas.width);
+        const modelToY = (modelY: number) =>
+            Math.floor(+modelY.toFixed(5) * canvas.height);
         const transform = { X: modelToX, Y: modelToY };
 
         // Draw Wrapper
@@ -300,13 +302,22 @@ export default function Breakout({
                 model.paddle.direction = getDirection();
                 objects.forEach((e) => e.move(deltaTime));
                 objects.forEach((e) => e.checkBounds());
-                // Block Steps
 
-                console.log(blockDownStepsCountdown);
-                if (blockDownStepsCountdown <= 0) {
+                // Block Steps
+                if (blockDownStepsCountdown === 0) {
+                    console.log("stop moving");
+                    console.log("status", model.blockMatrix.length);
+                    model.blockMatrix[0]
+                        .map((b) => {
+                            return { Y: b.Y, level: b.level };
+                        })
+                        .forEach((b) => console.log(b));
+
                     model.blockMatrix
                         .flat()
                         .forEach((b) => (b.canMove = false));
+                    blockDownStepsCountdown = -1;
+                } else if (blockDownStepsCountdown === -1) {
                 } else {
                     blockDownStepsCountdown -= 1;
                 }
