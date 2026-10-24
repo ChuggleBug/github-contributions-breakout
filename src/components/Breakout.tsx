@@ -163,9 +163,9 @@ export default function Breakout({
         paddle.height = heightScale(paddle.height);
 
         let model: BreakoutModel = {
+            blockMatrix,
             paddle,
             ball: makeBall(),
-            blockMatrix,
         };
         // Convert paddle to real coordinates
         model.paddle.X -= model.paddle.width / 2;
@@ -256,13 +256,11 @@ export default function Breakout({
         let blockDownStepsCountdown = 0;
         const filterBlocks = () => {
             // Check if any blocks are deleted
-            for (const block of [...objects].filter((e) => {
-                return e instanceof Block;
-            })) {
-                if (block.level === 0) {
-                    objects.delete(block);
-                }
-            }
+            [...objects]
+                .filter((e) => {
+                    return e instanceof Block && !e.alive;
+                })
+                .forEach((b) => objects.delete(b));
             // Check if the bottom row is empty
             let sliceTo: number = 0;
             for (let i = 0; i < model.blockMatrix.length; i += 1) {
