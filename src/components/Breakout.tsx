@@ -59,7 +59,10 @@ export default function Breakout({
         const yScaleFactor = width / height;
         const yOffset = (height - width) / height;
         const yScale = (y: number) => {
-            return y * yScaleFactor;
+            return y * yScaleFactor + yOffset;
+        };
+        const heightScale = (h: number) => {
+            return h * yScaleFactor;
         };
 
         console.log("Scale:", yScaleFactor);
@@ -109,8 +112,8 @@ export default function Breakout({
             ball.X -= ball.width / 2;
             ball.Y -= ball.height / 2;
             ball.angleDeg = (360 - ball.angleDeg) % 360;
-            ball.Y = yScale(ball.Y) + yOffset;
-            ball.height = yScale(ball.height);
+            ball.Y = yScale(ball.Y);
+            ball.height = heightScale(ball.height);
             return ball;
         };
 
@@ -130,17 +133,16 @@ export default function Breakout({
                     .slice(i, i + startingBlocks.blocksPerRow)
                     .map((bd, j) => {
                         const cellX = j * blockModelLength;
-                        let cellY =
+                        let cellY = yScale(
                             CONSTANTS.GAME_BLOCK_STARTING_LEVEL -
-                            rowNum * blockModelLength;
-                        cellY = yScale(cellY) + yOffset;
-
+                                rowNum * blockModelLength,
+                        );
                         let block = new Block({
                             X: cellX + half,
                             Y: cellY + half,
                             width: blockModelLength - blockMargin,
-                            height: yScale(blockModelLength - blockMargin),
-                            fullHeight: blockModelLength,
+                            height: heightScale(blockModelLength - blockMargin),
+                            fullHeight: heightScale(blockModelLength),
                             level: bd.level,
                             fillColor: colors.blocks,
                             roundness:
@@ -152,14 +154,18 @@ export default function Breakout({
             );
         }
 
+        let paddle = new Paddle({
+            ...DEFAULTS.paddle,
+            ...properties?.paddle,
+            fillColor: colors.paddle,
+        });
+        paddle.Y = yScale(paddle.Y);
+        paddle.height = heightScale(paddle.height);
+
         let model: BreakoutModel = {
-            paddle: new Paddle({
-                ...DEFAULTS.paddle,
-                ...properties?.paddle,
-                fillColor: colors.paddle,
-            }),
+            paddle,
             ball: makeBall(),
-            blockMatrix: blockMatrix,
+            blockMatrix,
         };
         // Convert paddle to real coordinates
         model.paddle.X -= model.paddle.width / 2;
