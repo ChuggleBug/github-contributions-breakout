@@ -56,6 +56,16 @@ export default function Breakout({
             return;
         }
 
+        const yScaleFactor = width / height;
+        const yOffset = (height - width) / height;
+        const yScale = (y: number) => {
+            return y * yScaleFactor;
+        };
+
+        console.log("Scale:", yScaleFactor);
+        console.log("yOffset:", yOffset);
+        console.log("Start: ", 0.5, " End: ", yScale(0.5));
+
         let dpi: number = 1;
         const handleResize = () => {
             dpi = window.devicePixelRatio || 1;
@@ -99,14 +109,15 @@ export default function Breakout({
             ball.X -= ball.width / 2;
             ball.Y -= ball.height / 2;
             ball.angleDeg = (360 - ball.angleDeg) % 360;
+            ball.Y = yScale(ball.Y) + yOffset;
+            ball.height = yScale(ball.height);
             return ball;
         };
 
         // Starting State of the model
         const blockMargin = properties?.blocks?.margin ?? DEFAULTS.block.margin;
         const half = blockMargin / 2;
-        const blockModelWidth = 1 / startingBlocks.blocksPerRow;
-        const cellHeight = CONSTANTS.GAME_BLOCK_HEIGHT;
+        const blockModelLength = 1 / startingBlocks.blocksPerRow;
 
         const blockMatrix: Block[][] = [];
         for (
@@ -118,22 +129,25 @@ export default function Breakout({
                 startingBlocks.blocks
                     .slice(i, i + startingBlocks.blocksPerRow)
                     .map((bd, j) => {
-                        const cellX = j * blockModelWidth;
-                        const cellY =
+                        const cellX = j * blockModelLength;
+                        let cellY =
                             CONSTANTS.GAME_BLOCK_STARTING_LEVEL -
-                            rowNum * cellHeight;
+                            rowNum * blockModelLength;
+                        cellY = yScale(cellY) + yOffset;
 
-                        return new Block({
+                        let block = new Block({
                             X: cellX + half,
                             Y: cellY + half,
-                            width: blockModelWidth - blockMargin,
-                            height: cellHeight - blockMargin,
+                            width: blockModelLength - blockMargin,
+                            height: yScale(blockModelLength - blockMargin),
+                            fullHeight: blockModelLength,
                             level: bd.level,
                             fillColor: colors.blocks,
                             roundness:
                                 properties?.blocks?.roundness ??
                                 DEFAULTS.block.roundness,
                         });
+                        return block;
                     }),
             );
         }
@@ -179,8 +193,10 @@ export default function Breakout({
             keySet.clear();
         };
         const handleFocus = () => {
-            state = "play";
-            storeRef.current?.setState("play");
+            if (state !== "end") {
+                state = "play";
+                storeRef.current?.setState("play");
+            }
         };
 
         // Events
@@ -259,6 +275,7 @@ export default function Breakout({
             // Final end game check
             if (model.blockMatrix.length === 0) {
                 state = "end";
+                store?.setState("end");
             }
         };
 
