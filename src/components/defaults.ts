@@ -8,29 +8,20 @@ import type { State } from "./types/model/core";
 
 export const DEFAULT_STATE: State = "start";
 
-const PADDLE_DEFAULT_X = 0.85;
+const PADDLE_DEFAULT_X = 0.5;
 const PADDLE_DEFAULT_Y = 0.85;
 const PADDLE_DEFAULT_X_SPEED = 1;
 const PADDLE_DEFAULT_Y_SPEED = 0;
 const PADDLE_DEFAULT_WIDTH = 0.2;
 const PADDLE_DEFAULT_HEIGHT = 0.01;
 
-const BALL_DEFAULT_X = 0.85;
-const BALL_DEFAULT_Y = 0.45;
-const BALL_DEFAULT_ANGLE = 270;
-// const BALL_DEFAULT_X: StartingRange = {
-//     min: 0.4,
-//     max: 0.6,
-// };
-// const BALL_DEFAULT_Y: StartingRange = {
-//     min: 0.45,
-//     max: 0.55,
-// };
-// const BALL_DEFAULT_ANGLE: StartingRange = {
-//     min: 210,
-//     max: 330,
-// };
-const BALL_DEFAULT_VELOCITY = 0.5;
+const BALL_DEFAULT_X = 0.5;
+const BALL_DEFAULT_Y = 0.6;
+const BALL_DEFAULT_ANGLE: StartingRange = {
+    min: 225,
+    max: 315,
+};
+const BALL_DEFAULT_VELOCITY = 0.7;
 const BALL_DEFAULT_WIDTH = 0.02;
 const BALL_DEFAULT_HEIGHT = 0.02;
 
