@@ -17,10 +17,7 @@ const PADDLE_DEFAULT_HEIGHT = 0.01;
 
 const BALL_DEFAULT_X = 0.5;
 const BALL_DEFAULT_Y = 0.6;
-const BALL_DEFAULT_ANGLE: StartingRange = {
-    min: 225,
-    max: 315,
-};
+const BALL_DEFAULT_ANGLE = 270;
 const BALL_DEFAULT_VELOCITY = 0.7;
 const BALL_DEFAULT_WIDTH = 0.02;
 const BALL_DEFAULT_HEIGHT = 0.02;
