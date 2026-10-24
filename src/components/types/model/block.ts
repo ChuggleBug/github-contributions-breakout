@@ -42,6 +42,14 @@ export class Block extends BreakoutModelElement {
     }
 
     bounds(): BoundingBox {
+        if (!this.alive) {
+            return {
+                x: -1,
+                y: -1,
+                w: 0,
+                h: 0,
+            };
+        }
         return { x: this.X, y: this.Y, w: this.width, h: this.height };
     }
 
@@ -59,6 +67,11 @@ export class Block extends BreakoutModelElement {
         };
     }
     draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform): void {
+        // Dont bother if not in bounds
+        if (this.Y + this.height < 0) {
+            return;
+        }
+
         const fill = this.fillColor.colorFor(this.level);
         if (fill.length === 0) {
             return;
