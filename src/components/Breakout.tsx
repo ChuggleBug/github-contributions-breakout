@@ -65,10 +65,6 @@ export default function Breakout({
             return h * yScaleFactor;
         };
 
-        console.log("Scale:", yScaleFactor);
-        console.log("yOffset:", yOffset);
-        console.log("Start: ", 0.5, " End: ", yScale(0.5));
-
         let dpi: number = 1;
         const handleResize = () => {
             dpi = window.devicePixelRatio || 1;
