@@ -1,8 +1,9 @@
-import { GITHUB_PALATTE } from "./github_dark";
+import { GITHUB_DARK_PALETTE } from "./github_dark";
 import { RANDOM_PALATTE } from "./random";
+import { GITHUB_LIGHT_PALETTE } from "./github_light";
 
 export type BreakoutColorPalatte =
-    "default" | "custom" | "github_dark" | "random";
+    "default" | "custom" | "github_dark" | "github_light" | "random";
 
 export interface ColorLevelFn {
     colorFor(level: number): string;
@@ -27,7 +28,9 @@ export function paletteFactory(
             return custom;
         case "default":
         case "github_dark":
-            return GITHUB_PALATTE;
+            return GITHUB_DARK_PALETTE;
+        case "github_light":
+            return GITHUB_LIGHT_PALETTE;
         case "random":
             return RANDOM_PALATTE;
     }

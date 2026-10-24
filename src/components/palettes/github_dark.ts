@@ -18,11 +18,11 @@ function colorSelect(level: number): string {
     return baseTable[level];
 }
 
-export const GITHUB_PALATTE: ColorPalette = {
+export const GITHUB_DARK_PALETTE: ColorPalette = {
     background: "#0d1117",
     paddle: "#ffffff",
     ball: "#ffffff",
     blocks: new MemoColorLevelFunction(colorSelect),
 };
 
-export default GITHUB_PALATTE;
+export default GITHUB_DARK_PALETTE;
