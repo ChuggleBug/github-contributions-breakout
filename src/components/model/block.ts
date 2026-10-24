@@ -1,7 +1,7 @@
 import { BreakoutModelElement } from "./core";
 import type { BoundingBox, WallHit, AxesModelTransform } from "./core";
-import type { ColorPalette } from "../../palettes/types";
-import { GAME_BLOCK_DOWN_STEPS } from "../../constants";
+import type { ColorPalette } from "../palettes/types";
+import { GAME_BLOCK_DOWN_STEPS } from "../constants";
 
 export type BlockModel = {
     X: number;

@@ -3,8 +3,8 @@ import type {
     PaddleStartState,
     BallStartState,
     BlockGridProperties,
-} from "./types/properties";
-import type { State } from "./types/model/core";
+} from "./types";
+import type { State } from "../model/core";
 
 export const DEFAULT_STATE: State = "start";
 

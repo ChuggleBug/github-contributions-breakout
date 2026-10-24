@@ -1,15 +1,15 @@
 import "./breakout.css";
 import { useEffect, useRef } from "react";
 import { type BreakoutStore } from "./useBreakoutStore";
-import { Paddle } from "./types/model/paddle";
-import { Ball } from "./types/model/ball";
-import type { BreakoutProperties, BlockGrid } from "./types/properties";
+import { Paddle } from "./model/paddle";
+import { Ball } from "./model/ball";
+import type { BreakoutProperties, BlockGrid } from "./properties/types";
 import type {
     BreakoutModel,
     State,
     Direction,
     BreakoutModelElement,
-} from "./types/model/core";
+} from "./model/core";
 import {
     paletteFactory,
     type BreakoutColorPalatte,
@@ -17,8 +17,8 @@ import {
 } from "./palettes/types";
 import * as CONSTANTS from "./constants";
 
-import { DEFAULT_STATE, DEFAULTS, rangeSelect } from "./defaults";
-import { Block } from "./types/model/block";
+import { DEFAULT_STATE, DEFAULTS, rangeSelect } from "./properties/defaults";
+import { Block } from ".//model/block";
 
 export type BreakoutProps = {
     height: number;

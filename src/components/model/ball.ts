@@ -1,4 +1,4 @@
-import * as CONSTANTS from "../../constants";
+import * as CONSTANTS from "../constants";
 import { Block } from "./block";
 import { BreakoutModelElement, wallHits } from "./core";
 import type { BoundingBox, AxesModelTransform } from "./core";
