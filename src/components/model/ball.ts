@@ -1,36 +1,19 @@
 import * as CONSTANTS from "../constants";
 import { Block } from "./block";
-import { BreakoutModelElement, wallHits } from "./core";
-import type { BoundingBox, AxesModelTransform } from "./core";
+import { ModelElement, wallHits } from "./core";
+import type { AxesModelTransform } from "./types";
 import { Paddle } from "./paddle";
+import type { BallStruct } from "./types";
 
-export type BallModel = {
-    X: number;
-    Y: number;
+export class Ball extends ModelElement {
     velocity: number;
     angleDeg: number;
-    width: number;
-    height: number;
-    fillColor: string;
-};
-
-export class Ball extends BreakoutModelElement {
-    X: number;
-    Y: number;
-    velocity: number;
-    angleDeg: number;
-    width: number;
-    height: number;
     fillColor: string;
 
-    constructor({ ...params }: BallModel) {
-        super();
-        this.X = params.X;
-        this.Y = params.Y;
+    constructor({ ...params }: BallStruct) {
+        super({ ...params });
         this.velocity = params.velocity;
         this.angleDeg = params.angleDeg;
-        this.width = params.width;
-        this.height = params.height;
         this.fillColor = params.fillColor;
     }
 
@@ -43,9 +26,6 @@ export class Ball extends BreakoutModelElement {
         const toY = this.Y + yStep;
         this.X = toX;
         this.Y = toY;
-    }
-    bounds(): BoundingBox {
-        return { x: this.X, y: this.Y, w: this.width, h: this.height };
     }
 
     protected checkObjectBounds() {
@@ -90,7 +70,7 @@ export class Ball extends BreakoutModelElement {
         );
     }
 
-    handleCollision(element: BreakoutModelElement): void {
+    handleCollision(element: ModelElement): void {
         if (element instanceof Paddle) {
             this.handlePaddleCollision(element);
         } else if (element instanceof Block) {

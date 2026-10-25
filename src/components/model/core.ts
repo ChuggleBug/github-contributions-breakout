@@ -1,28 +1,47 @@
 import type { Block } from "./block";
 import type { Paddle } from "./paddle";
 import type { Ball } from "./ball";
+import type { ModelElementStruct } from "./types";
+import type { AxesModelTransform, BoundingBox, WallHit } from "./types";
 
-export type State = "pause" | "play" | "start" | "end";
-export type Direction = "left" | "right" | "none";
+export class ObjectSet {
+    private objects: Record<number, Set<ModelElement>>;
 
-export type ModelTransform = (axis: number) => number;
-export type AxesModelTransform = {
-    X: ModelTransform;
-    Y: ModelTransform;
-};
+    constructor() {
+        this.objects = {};
+    }
 
-export interface BoundingBox {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-}
+    add(e: ModelElement | ModelElement[]) {
+        if (Array.isArray(e)) {
+            e.forEach((e) => this.add_single(e));
+        } else {
+            this.add_single(e);
+        }
+    }
 
-export interface WallHit {
-    left: boolean;
-    right: boolean;
-    top: boolean;
-    bottom: boolean;
+    has(e: ModelElement) {
+        return this.objects[e.Z].has(e);
+    }
+
+    private add_single(e: ModelElement) {
+        if (!(e.Z in this.objects)) {
+            this.objects[e.Z] = new Set();
+        }
+        this.objects[e.Z].add(e);
+    }
+
+    delete(e: ModelElement) {
+        this.objects[e.Z].delete(e);
+    }
+
+    get all(): ModelElement[] {
+        return Object.keys(this.objects)
+            .sort((k) => Number(k))
+            .map((k: string) => {
+                return [...this.objects[Number(k)]];
+            })
+            .flat();
+    }
 }
 
 export function wallHits(b: BoundingBox): WallHit {
@@ -34,11 +53,21 @@ export function wallHits(b: BoundingBox): WallHit {
     };
 }
 
-export abstract class BreakoutModelElement {
+export abstract class ModelElement {
+    X: number;
+    Y: number;
+    Z: number;
+    width: number;
+    height: number;
     private wallsHit: WallHit;
     private doMove: boolean;
 
-    constructor() {
+    constructor({ ...params }: ModelElementStruct) {
+        this.X = params.X;
+        this.Y = params.Y;
+        this.Z = params.Z ?? 0;
+        this.width = params.width;
+        this.height = params.height;
         this.doMove = true;
         this.wallsHit = {
             top: false,
@@ -56,7 +85,11 @@ export abstract class BreakoutModelElement {
         this.doMove = move;
     }
 
-    collides(other: BreakoutModelElement): boolean {
+    bounds(): BoundingBox {
+        return { x: this.X, y: this.Y, w: this.width, h: this.height };
+    }
+
+    collides(other: ModelElement): boolean {
         const a = this.bounds();
         const b = other.bounds();
         return (
@@ -68,9 +101,8 @@ export abstract class BreakoutModelElement {
     }
 
     // @ts-ignore
-    handleCollision(element: BreakoutModelElement): void {}
+    handleCollision(element: ModelElement): void {}
 
-    abstract bounds(): BoundingBox;
     move(dt: number) {
         if (this.doMove) {
             this.moveObject(dt);

@@ -1,35 +1,18 @@
-import { BreakoutModelElement, wallHits } from "./core";
-import type { Direction, BoundingBox, AxesModelTransform } from "./core";
+import { ModelElement, wallHits } from "./core";
+import type { Direction, BoundingBox, AxesModelTransform } from "./types";
+import type { PaddleStruct } from "./types";
 
-export type PaddleModel = {
-    X: number;
-    Y: number;
+export class Paddle extends ModelElement {
     XSpeed: number;
     YSpeed: number;
-    width: number;
-    height: number;
-    fillColor: string;
-};
-
-export class Paddle extends BreakoutModelElement {
-    X: number;
-    Y: number;
-    XSpeed: number;
-    YSpeed: number;
-    width: number;
-    height: number;
 
     direction: Direction = "none";
     fillColor: string;
 
-    constructor({ ...params }: PaddleModel) {
-        super();
-        this.Y = params.Y;
-        this.X = params.X;
+    constructor({ ...params }: PaddleStruct) {
+        super({ ...params });
         this.XSpeed = params.XSpeed;
         this.YSpeed = params.YSpeed;
-        this.width = params.width;
-        this.height = params.height;
         this.fillColor = params.fillColor;
     }
 
@@ -49,10 +32,6 @@ export class Paddle extends BreakoutModelElement {
                 break;
             }
         }
-    }
-
-    bounds(): BoundingBox {
-        return { x: this.X, y: this.Y, w: this.width, h: this.height };
     }
 
     protected checkObjectBounds() {

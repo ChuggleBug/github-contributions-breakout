@@ -1,39 +1,21 @@
-import { BreakoutModelElement } from "./core";
-import type { BoundingBox, WallHit, AxesModelTransform } from "./core";
-import type { ColorPalette } from "../palettes/types";
+import { ModelElement } from "./core";
+import type { BoundingBox, WallHit, AxesModelTransform } from "./types";
 import { GAME_BLOCK_DOWN_STEPS } from "../constants";
+import type { ColorPalette } from "../palettes/types";
+import type { BlockStruct } from "./types";
 
-export type BlockModel = {
-    X: number;
-    Y: number;
-    width: number;
-    height: number;
-    fullHeight: number;
-    level: number;
-    fillColor: ColorPalette["blocks"];
-    roundness: number;
-};
-
-export class Block extends BreakoutModelElement {
-    X: number;
-    Y: number;
-    width: number;
-    height: number;
+export class Block extends ModelElement {
     fullHeight: number;
     level: number;
     fillColor: ColorPalette["blocks"];
     roundness: number;
 
-    constructor({ ...props }: BlockModel) {
-        super();
-        this.X = props.X;
-        this.Y = props.Y;
-        this.width = props.width;
-        this.height = props.height;
-        this.fullHeight = props.fullHeight;
-        this.level = props.level;
-        this.fillColor = props.fillColor;
-        this.roundness = props.roundness;
+    constructor({ ...params }: BlockStruct) {
+        super({ ...params });
+        this.fullHeight = params.fullHeight;
+        this.level = params.level;
+        this.fillColor = params.fillColor;
+        this.roundness = params.roundness;
         this.canMove = false;
     }
 

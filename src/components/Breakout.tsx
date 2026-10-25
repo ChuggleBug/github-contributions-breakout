@@ -4,12 +4,8 @@ import { type BreakoutStore } from "./useBreakoutStore";
 import { Paddle } from "./model/paddle";
 import { Ball } from "./model/ball";
 import type { BreakoutProperties, BlockGrid } from "./properties/types";
-import type {
-    BreakoutModel,
-    State,
-    Direction,
-    BreakoutModelElement,
-} from "./model/core";
+import type { State, Direction } from "./model/types";
+import { ObjectSet, type BreakoutModel, type ModelElement } from "./model/core";
 import {
     paletteFactory,
     type BreakoutColorPalatte,
@@ -81,7 +77,7 @@ export default function Breakout({
         const transform = { X: modelToX, Y: modelToY };
 
         // Draw Wrapper
-        const drawObject = (e: BreakoutModelElement) => {
+        const drawObject = (e: ModelElement) => {
             e.draw(ctx, transform);
         };
 
@@ -235,16 +231,14 @@ export default function Breakout({
             return direction;
         };
 
-        let objects = new Set<BreakoutModelElement>([
-            model.paddle,
-            model.ball,
-            ...model.blockMatrix.flat(),
-        ]);
+        const objects = new ObjectSet();
+        objects.add([model.paddle, model.ball, ...model.blockMatrix.flat()]);
+        // let objects = new Set<ModelElement>();
 
         const drawGame = () => {
             ctx.fillStyle = colors.background;
             ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-            objects.forEach((e) => {
+            objects.all.forEach((e) => {
                 drawObject(e);
             });
         };
@@ -252,7 +246,7 @@ export default function Breakout({
         let blockDownStepsCountdown = 0;
         const filterBlocks = () => {
             // Check if any blocks are deleted
-            [...objects]
+            [...objects.all]
                 .filter((e) => {
                     return e instanceof Block && !e.alive;
                 })
@@ -317,8 +311,8 @@ export default function Breakout({
 
                 // Move and out of bounds check
                 model.paddle.direction = getDirection();
-                objects.forEach((e) => e.move(deltaTime));
-                objects.forEach((e) => e.checkBounds());
+                objects.all.forEach((e) => e.move(deltaTime));
+                objects.all.forEach((e) => e.checkBounds());
 
                 // Block Steps
                 if (blockDownStepsCountdown > 0) {
@@ -331,7 +325,7 @@ export default function Breakout({
                 }
 
                 // Collisions
-                for (const obj of objects) {
+                for (const obj of objects.all) {
                     if (model.ball.collides(obj)) {
                         model.ball.handleCollision(obj);
                     }
