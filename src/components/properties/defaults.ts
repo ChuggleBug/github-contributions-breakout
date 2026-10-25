@@ -3,6 +3,7 @@ import type {
     PaddleStartState,
     BallStartState,
     BlockGridProperties,
+    GameControlProperties,
 } from "./types";
 import type { State } from "../model/types";
 
@@ -24,6 +25,10 @@ const BALL_DEFAULT_HEIGHT = 0.02;
 
 const BLOCK_MARGIN = 0.01;
 const BLOCK_ROUNDNESS = 0.2;
+
+const CONTROL_LEFT_KEYS = ["KeyA", "ArrowLeft"];
+const CONTROL_RIGHT_KEYS = ["KeyD", "ArrowRight"];
+const CONTROL_SPEED_UP_KEY = ["Space"];
 
 export function rangeSelect(option: number | StartingRange): number {
     if (typeof option === "number") {
@@ -63,10 +68,16 @@ export const DEFAULTS = {
         margin: BLOCK_MARGIN,
         roundness: BLOCK_ROUNDNESS,
     },
+    controls: {
+        leftKeys: CONTROL_LEFT_KEYS,
+        rightKeys: CONTROL_RIGHT_KEYS,
+        speedupKeys: CONTROL_SPEED_UP_KEY,
+    },
 } satisfies {
     paddle: Required<PaddleStartState>;
     ball: Required<BallStartState>;
     block: Required<BlockGridProperties>;
+    controls: Required<GameControlProperties>;
 };
 
 export default DEFAULTS;

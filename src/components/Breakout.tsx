@@ -3,7 +3,11 @@ import { useEffect, useRef } from "react";
 import { type BreakoutStore } from "./useBreakoutStore";
 import { Paddle } from "./model/paddle";
 import { Ball } from "./model/ball";
-import type { BreakoutProperties, BlockGrid } from "./properties/types";
+import type {
+    BreakoutProperties,
+    BlockGrid,
+    GameControlProperties,
+} from "./properties/types";
 import type { State, Direction } from "./model/types";
 import { ObjectSet, type BreakoutModel, type ModelElement } from "./model/core";
 import {
@@ -25,10 +29,6 @@ export type BreakoutProps = {
     palette?: BreakoutColorPalatte;
     customPalette?: ColorPalette;
 };
-
-const LEFT_KEYS = ["KeyA", "ArrowLeft"];
-const RIGHT_KEYS = ["KeyD", "ArrowRight"];
-const SPEED_UP_KEY = ["Space"];
 
 export default function Breakout({
     height,
@@ -190,6 +190,10 @@ export default function Breakout({
 
         // Load keyboard events
         const keySet = new Set<string>();
+        const controls = {
+            ...properties?.controls,
+            ...DEFAULTS.controls,
+        } satisfies Required<GameControlProperties>;
         type BallHiddenState = Ball & { _speedup: boolean };
         const handleKeyDown = (e: KeyboardEvent) => {
             keySet.add(e.code);
@@ -198,7 +202,7 @@ export default function Breakout({
                 e.preventDefault();
             }
             // Speed up the ball
-            if (e.code in SPEED_UP_KEY) {
+            if (controls.speedupKeys.some((k) => k === e.code)) {
                 if (!Object.hasOwn(model.ball, "_speedup")) {
                     (model.ball as BallHiddenState)._speedup = false;
                 }
@@ -211,7 +215,7 @@ export default function Breakout({
         const handleKeyUp = (e: KeyboardEvent) => {
             keySet.delete(e.code);
             // Speed up the ball
-            if (e.code in SPEED_UP_KEY) {
+            if (controls.speedupKeys.some((k) => k === e.code)) {
                 if (!Object.hasOwn(model.ball, "_speedup")) {
                     (model.ball as BallHiddenState)._speedup = false;
                 }
@@ -251,13 +255,13 @@ export default function Breakout({
 
         const getDirection = () => {
             let direction: Direction = "none";
-            for (const k of LEFT_KEYS) {
+            for (const k of controls.leftKeys) {
                 if (keySet.has(k)) {
                     direction = "left";
                     break;
                 }
             }
-            for (const k of RIGHT_KEYS) {
+            for (const k of controls.rightKeys) {
                 if (keySet.has(k)) {
                     // Conflicting directions
                     if (direction === "left") {

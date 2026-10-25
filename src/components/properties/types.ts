@@ -47,8 +47,15 @@ export type BlockGridProperties = {
     roundness?: number;
 };
 
+export type GameControlProperties = {
+    leftKeys?: ReadonlyArray<string>;
+    rightKeys?: ReadonlyArray<string>;
+    speedupKeys?: ReadonlyArray<string>;
+};
+
 export type BreakoutProperties = {
     paddle?: PaddleStartState;
     ball?: BallStartState;
     blocks?: BlockGridProperties;
+    controls?: GameControlProperties;
 };
