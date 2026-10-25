@@ -77,7 +77,7 @@ export default function Breakout({
         const transform = { X: modelToX, Y: modelToY };
 
         // Draw Wrapper
-        const drawObject = (e: ModelElement) => {
+        const drawElement = (e: ModelElement) => {
             e.draw(ctx, transform);
         };
 
@@ -97,6 +97,7 @@ export default function Breakout({
                 ...properties?.ball,
                 X: rangeSelect(XSafe),
                 Y: rangeSelect(YSafe),
+                Z: 1,
                 angleDeg: rangeSelect(angleDegSafe),
                 fillColor: colors.ball,
             });
@@ -132,6 +133,7 @@ export default function Breakout({
                         let block = new Block({
                             X: cellX + half,
                             Y: cellY + half,
+                            Z: 2,
                             width: blockModelLength - blockMargin,
                             height: heightScale(blockModelLength - blockMargin),
                             fullHeight: heightScale(blockModelLength),
@@ -145,17 +147,32 @@ export default function Breakout({
                     }),
             );
         }
+        let blockSlice = 0;
+        for (; blockSlice < blockMatrix.length; blockSlice += 1) {
+            // If there is not blocks in this row (all dead)
+            // Then just skip
+            if (
+                blockMatrix[blockSlice]
+                    .filter((b) => b.alive)
+                    .some((b) => !b.visible())
+            ) {
+                break;
+            }
+        }
+        let loadedBlocks = blockMatrix.slice(0, blockSlice);
+        let blockQueue = blockMatrix.slice(blockSlice);
 
         let paddle = new Paddle({
             ...DEFAULTS.paddle,
             ...properties?.paddle,
             fillColor: colors.paddle,
+            Z: 1,
         });
         paddle.Y = yScale(paddle.Y);
         paddle.height = heightScale(paddle.height);
 
         let model: BreakoutModel = {
-            blockMatrix,
+            blockMatrix: loadedBlocks,
             paddle,
             ball: makeBall(),
         };
@@ -239,42 +256,59 @@ export default function Breakout({
             ctx.fillStyle = colors.background;
             ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
             objects.all.forEach((e) => {
-                drawObject(e);
+                drawElement(e);
             });
         };
 
         let blockDownStepsCountdown = 0;
         const filterBlocks = () => {
-            // Check if any blocks are deleted
-            [...objects.all]
-                .filter((e) => {
-                    return e instanceof Block && !e.alive;
-                })
-                .forEach((b) => objects.delete(b));
-            // Check if the bottom row is empty
-            let sliceTo: number = 0;
+            let sliceTo = 0;
             for (let i = 0; i < model.blockMatrix.length; i += 1) {
-                // Row is empty
-                if (model.blockMatrix[i].every((b) => !b.alive)) {
+                if (model.blockMatrix[sliceTo].every((b) => !b.alive)) {
                     sliceTo = i + 1;
-                    blockDownStepsCountdown += CONSTANTS.GAME_BLOCK_DOWN_STEPS;
-                } else {
                     break;
                 }
             }
-            if (sliceTo >= 1) {
+
+            if (sliceTo > 0) {
+                blockDownStepsCountdown +=
+                    CONSTANTS.GAME_BLOCK_DOWN_STEPS * sliceTo;
+
+            
+                const topRow = model.blockMatrix[model.blockMatrix.length - 1];
+                const topY = topRow[0].Y;
+                const rowPitch = topRow[0].fullHeight;
+
+                const toDelete = model.blockMatrix.slice(0, sliceTo);
                 model.blockMatrix = model.blockMatrix.slice(sliceTo);
+                const toAdd = blockQueue.slice(0, sliceTo);
+                blockQueue = blockQueue.slice(sliceTo);
+
+                toAdd.forEach((row, i) => {
+                    row.forEach((b) => {
+                        b.Y = topY - (i + 1) * rowPitch;
+                    });
+                });
+
+                objects.delete(toDelete.flat());
+                objects.add(toAdd.flat());
+
+                toAdd.forEach((r) => model.blockMatrix.push(r));
                 model.blockMatrix.flat().forEach((b) => (b.canMove = true));
             }
-            // Final end game check
-            if (model.blockMatrix.length === 0) {
+            // Game end check
+            if (model.blockMatrix.length <= 0) {
                 state = "end";
                 store?.setState("end");
             }
         };
-
+        
         filterBlocks();
         const render = (time: number) => {
+            console.log(
+                "Blocks: ",
+                objects.all.filter((e) => e instanceof Block).length,
+            );
             if (lastTime === null) {
                 lastTime = time;
             }

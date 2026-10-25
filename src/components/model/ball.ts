@@ -60,7 +60,7 @@ export class Ball extends ModelElement {
         return hit;
     }
 
-    draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform) {
+    drawObject(ctx: CanvasRenderingContext2D, transform: AxesModelTransform) {
         ctx.fillStyle = this.fillColor;
         ctx.fillRect(
             transform.X(this.X),

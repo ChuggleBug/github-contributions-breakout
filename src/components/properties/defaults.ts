@@ -4,7 +4,7 @@ import type {
     BallStartState,
     BlockGridProperties,
 } from "./types";
-import type { State } from "../model/core";
+import type { State } from "../model/types";
 
 export const DEFAULT_STATE: State = "start";
 
@@ -22,7 +22,7 @@ const BALL_DEFAULT_VELOCITY = 0.7;
 const BALL_DEFAULT_WIDTH = 0.02;
 const BALL_DEFAULT_HEIGHT = 0.02;
 
-const BLOCK_MARGIN = 0.015;
+const BLOCK_MARGIN = 0.01;
 const BLOCK_ROUNDNESS = 0.2;
 
 export function rangeSelect(option: number | StartingRange): number {

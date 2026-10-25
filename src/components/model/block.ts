@@ -48,12 +48,10 @@ export class Block extends ModelElement {
             bottom: false,
         };
     }
-    draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform): void {
-        // Dont bother if not in bounds
-        if (this.Y + this.height < 0) {
-            return;
-        }
-
+    drawObject(
+        ctx: CanvasRenderingContext2D,
+        transform: AxesModelTransform,
+    ): void {
         const fill = this.fillColor.colorFor(this.level);
         if (fill.length === 0) {
             return;

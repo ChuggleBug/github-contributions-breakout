@@ -30,13 +30,26 @@ export class ObjectSet {
         this.objects[e.Z].add(e);
     }
 
-    delete(e: ModelElement) {
+    delete(e: ModelElement | ModelElement[]) {
+        if (Array.isArray(e)) {
+            e.forEach((e) => this.delete_single(e));
+        } else {
+            this.delete_single(e);
+        }
+    }
+
+    private delete_single(e: ModelElement) {
+        if (!(e.Z in this.objects)) {
+            return;
+        }
         this.objects[e.Z].delete(e);
     }
 
     get all(): ModelElement[] {
         return Object.keys(this.objects)
-            .sort((k) => Number(k))
+            .sort((l, r) => {
+                return Number(r) - Number(l);
+            })
             .map((k: string) => {
                 return [...this.objects[Number(k)]];
             })
@@ -89,6 +102,11 @@ export abstract class ModelElement {
         return { x: this.X, y: this.Y, w: this.width, h: this.height };
     }
 
+    visible(): boolean {
+        const { x, y, w, h } = this.bounds();
+        return x < 1 && x + w > 0 && y < 1 && y + h > 0;
+    }
+
     collides(other: ModelElement): boolean {
         const a = this.bounds();
         const b = other.bounds();
@@ -113,7 +131,10 @@ export abstract class ModelElement {
         this.wallsHit = this.checkObjectBounds();
     }
     protected abstract checkObjectBounds(): WallHit;
-    abstract draw(
+    draw(ctx: CanvasRenderingContext2D, transform: AxesModelTransform): void {
+        this.drawObject(ctx, transform);
+    }
+    protected abstract drawObject(
         ctx: CanvasRenderingContext2D,
         transform: AxesModelTransform,
     ): void;

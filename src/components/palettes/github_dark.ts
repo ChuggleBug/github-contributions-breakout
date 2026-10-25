@@ -2,7 +2,7 @@ import type { ColorPalette } from "./types";
 import { MemoColorLevelFunction } from "./color_function";
 
 const baseTable: Record<number, string> = {
-    0: "",
+    0: "#151b23",
     1: "#033a16",
     2: "#196c2e",
     3: "#2ea043",
