@@ -28,6 +28,7 @@ export type BreakoutProps = {
 
 const LEFT_KEYS = ["KeyA", "ArrowLeft"];
 const RIGHT_KEYS = ["KeyD", "ArrowRight"];
+const SPEED_UP_KEY = ["Space"];
 
 export default function Breakout({
     height,
@@ -189,16 +190,38 @@ export default function Breakout({
 
         // Load keyboard events
         const keySet = new Set<string>();
+        type BallHiddenState = Ball & { _speedup: boolean };
         const handleKeyDown = (e: KeyboardEvent) => {
             keySet.add(e.code);
             // stop page scrolling
             if (e.code.startsWith("Arrow") || e.code === "Space") {
                 e.preventDefault();
             }
+            // Speed up the ball
+            if (e.code in SPEED_UP_KEY) {
+                if (!Object.hasOwn(model.ball, "_speedup")) {
+                    (model.ball as BallHiddenState)._speedup = false;
+                }
+                if (!(model.ball as BallHiddenState)._speedup) {
+                    (model.ball as BallHiddenState)._speedup = true;
+                    model.ball.velocity *= 3;
+                }
+            }
         };
         const handleKeyUp = (e: KeyboardEvent) => {
             keySet.delete(e.code);
+            // Speed up the ball
+            if (e.code in SPEED_UP_KEY) {
+                if (!Object.hasOwn(model.ball, "_speedup")) {
+                    (model.ball as BallHiddenState)._speedup = false;
+                }
+                if ((model.ball as BallHiddenState)._speedup) {
+                    (model.ball as BallHiddenState)._speedup = false;
+                    model.ball.velocity /= 3;
+                }
+            }
         };
+
         const handlePointerDown = () => {
             canvas.focus();
         };
@@ -274,7 +297,6 @@ export default function Breakout({
                 blockDownStepsCountdown +=
                     CONSTANTS.GAME_BLOCK_DOWN_STEPS * sliceTo;
 
-            
                 const topRow = model.blockMatrix[model.blockMatrix.length - 1];
                 const topY = topRow[0].Y;
                 const rowPitch = topRow[0].fullHeight;
@@ -302,7 +324,7 @@ export default function Breakout({
                 store?.setState("end");
             }
         };
-        
+
         filterBlocks();
         const render = (time: number) => {
             console.log(
