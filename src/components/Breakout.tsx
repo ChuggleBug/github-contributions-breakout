@@ -19,6 +19,7 @@ import * as CONSTANTS from "./constants";
 
 import { DEFAULT_STATE, DEFAULTS, rangeSelect } from "./properties/defaults";
 import { Block } from ".//model/block";
+import { GameWindow } from "./game/core";
 
 export type BreakoutProps = {
     height: number;
@@ -53,8 +54,18 @@ export default function Breakout({
             return;
         }
 
-        const yScaleFactor = width / height;
-        const yOffset = (height - width) / height;
+        const game = new GameWindow();
+        // const footerID = game.splitView(game.mainViewID, 0.95, "horizontal");
+        // const sidebarID = game.splitView(game.mainViewID, 0.9, "vertical");
+
+        const gameWidth =
+            (game.mainView.horizontal.end - game.mainView.horizontal.start) *
+            width;
+        const gameHeight =
+            (game.mainView.vertical.end - game.mainView.vertical.start) *
+            height;
+        const yScaleFactor = gameWidth / gameHeight;
+        const yOffset = (gameHeight - gameWidth) / gameHeight;
         const yScale = (y: number) => {
             return y * yScaleFactor + yOffset;
         };
@@ -72,9 +83,15 @@ export default function Breakout({
 
         // Basic Model Transformations (device pixels)
         const modelToX = (modelX: number) =>
-            Math.floor(+modelX.toFixed(5) * canvas.width);
+            Math.floor(
+                +modelX.toFixed(5) *
+                    canvas.width *
+                    game.mainView.horizontal.end,
+            );
         const modelToY = (modelY: number) =>
-            Math.floor(+modelY.toFixed(5) * canvas.height);
+            Math.floor(
+                +modelY.toFixed(5) * canvas.height * game.mainView.vertical.end,
+            );
         const transform = { X: modelToX, Y: modelToY };
 
         // Draw Wrapper
