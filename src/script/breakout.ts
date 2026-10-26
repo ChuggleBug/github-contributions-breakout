@@ -66,6 +66,7 @@ export class Breakout {
 
     // Internal state from BreakoutState
     private state: State = DEFAULT_STATE;
+    private score: number = 0;
 
     constructor(opts: BreakoutOptions) {
         this.height = opts.height;
@@ -106,6 +107,13 @@ export class Breakout {
         this.state = s;
         if (this.store) {
             this.store.setState(s);
+        }
+    }
+
+    private setScore(s: number) {
+        this.score = s;
+        if (this.store) {
+            this.store?.setScore(s);
         }
     }
 
@@ -268,7 +276,6 @@ export class Breakout {
         // TODO: Bounds check initial state
 
         let frameCount = 0;
-        let score = 0;
         let lastReportedScore = -1;
 
         // Load keyboard events
@@ -514,9 +521,9 @@ export class Breakout {
                 drawGame();
 
                 // TOOD: Modify this
-                score = Math.floor(playTime);
-                if (score !== lastReportedScore) {
-                    lastReportedScore = score;
+                this.setScore(Math.floor(playTime));
+                if (this.score !== lastReportedScore) {
+                    lastReportedScore = this.score;
                 }
             }
 
