@@ -8,7 +8,7 @@ import type {
     BlockGrid,
     GameControlProperties,
 } from "./properties/types";
-import type { State, Direction } from "./model/types";
+import type { State, Direction, AxesModelTransform } from "./model/types";
 import { ObjectSet, type BreakoutModel, type ModelElement } from "./model/core";
 import {
     paletteFactory,
@@ -55,9 +55,7 @@ export default function Breakout({
         }
 
         const game = new GameWindow();
-        // const footerID = game.splitView(game.mainViewID, 0.95, "horizontal");
-        // const sidebarID = game.splitView(game.mainViewID, 0.9, "vertical");
-
+        const sidebarID = game.splitView(game.mainViewID, 0.9, "vertical");
         const gameWidth =
             (game.mainView.horizontal.end - game.mainView.horizontal.start) *
             width;
@@ -81,22 +79,29 @@ export default function Breakout({
         };
         handleResize();
 
-        // Basic Model Transformations (device pixels)
-        const modelToX = (modelX: number) =>
-            Math.floor(
-                +modelX.toFixed(5) *
-                    canvas.width *
-                    game.mainView.horizontal.end,
-            );
-        const modelToY = (modelY: number) =>
-            Math.floor(
-                +modelY.toFixed(5) * canvas.height * game.mainView.vertical.end,
-            );
-        const transform = { X: modelToX, Y: modelToY };
+        const makeTransform = (id: number): AxesModelTransform => {
+            // Read the view on every call so changes to the view are picked up
+            // automatically. Maps model 0..1 -> view start..end -> device pixels.
+            const modelToX = (modelX: number) => {
+                const { start, end } = game.view(id).horizontal;
+                return (
+                    (start + +modelX.toFixed(5) * (end - start)) * canvas.width
+                );
+            };
+            const modelToY = (modelY: number) => {
+                const { start, end } = game.view(id).vertical;
+                return (
+                    (start + +modelY.toFixed(5) * (end - start)) * canvas.height
+                );
+            };
+            return { X: modelToX, Y: modelToY };
+        };
+
+        const gameTransform = makeTransform(game.mainViewID);
 
         // Draw Wrapper
         const drawElement = (e: ModelElement) => {
-            e.draw(ctx, transform);
+            e.draw(ctx, gameTransform);
         };
 
         const colors = paletteFactory(palette, customPalette);
@@ -298,10 +303,26 @@ export default function Breakout({
 
         const drawGame = () => {
             ctx.fillStyle = colors.background;
-            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.fillRect(
+                gameTransform.X(0),
+                gameTransform.Y(0),
+                gameTransform.X(1),
+                gameTransform.Y(1),
+            );
             objects.all.forEach((e) => {
                 drawElement(e);
             });
+
+            // Draw Borders
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(
+                gameTransform.X(0),
+                gameTransform.Y(0),
+                gameTransform.X(1),
+                gameTransform.Y(1),
+            );
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
         };
 
         let blockDownStepsCountdown = 0;
@@ -365,8 +386,8 @@ export default function Breakout({
                 ctx.fillStyle = "#fff";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
-                ctx.font = `${transform.Y(0.1)}px monospace`;
-                ctx.fillText("Game End", transform.X(0.5), transform.Y(0.5));
+                ctx.font = `${gameTransform.Y(0.1)}px monospace`;
+                ctx.fillText("Game End", gameTransform.X(0.5), gameTransform.Y(0.5));
                 return;
             }
             if (state === "pause") {
@@ -376,8 +397,8 @@ export default function Breakout({
                 ctx.fillStyle = "#fff";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
-                ctx.font = `${transform.Y(0.1)}px monospace`;
-                ctx.fillText("Paused", transform.X(0.5), transform.Y(0.5));
+                ctx.font = `${gameTransform.Y(0.1)}px monospace`;
+                ctx.fillText("Paused", gameTransform.X(0.5), gameTransform.Y(0.5));
             } else if (state === "start") {
                 // Only draw all the elements
                 ctx.filter = "brightness(50%)";

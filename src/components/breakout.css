@@ -1,7 +1,3 @@
-.breakout {
-    border: 1px solid #ffffff;
-}
-
 .breakout:focus,
 .breakout:focus-visible {
     outline: none;
