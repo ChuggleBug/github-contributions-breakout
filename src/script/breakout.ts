@@ -448,7 +448,7 @@ export class Breakout {
             lastTime = time;
             deltaTime = Math.min(deltaTime, CONSTANTS.GAME_MAX_DELTA_TIME);
             if (this.state === "end") {
-                this.ctx.filter = "brightness(50%)";
+                // this.ctx.filter = "blur(2px)";
                 drawGame();
                 this.ctx.filter = "none";
                 this.ctx.fillStyle = "#fff";
@@ -463,7 +463,7 @@ export class Breakout {
                 return;
             }
             if (this.state === "pause") {
-                this.ctx.filter = "brightness(50%)";
+                // this.ctx.filter = "blur(2px)";
                 drawGame();
                 this.ctx.filter = "none";
                 this.ctx.fillStyle = "#fff";
