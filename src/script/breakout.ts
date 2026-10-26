@@ -47,6 +47,8 @@ export type BreakoutStore = {
     setState: (state: State) => void;
 };
 
+let model: BreakoutModel;
+
 export class Breakout {
     readonly canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
@@ -67,6 +69,10 @@ export class Breakout {
     // Internal state from BreakoutState
     private state: State = DEFAULT_STATE;
     private seconds: number = 0;
+
+    // Internal State
+    private keySet: Set<string>;
+    private controls: Required<GameControlProperties>;
 
     constructor(opts: BreakoutOptions) {
         this.height = opts.height;
@@ -97,6 +103,12 @@ export class Breakout {
             throw new Error("2D context not supported");
         }
         this.ctx = ctx;
+
+        this.keySet = new Set<string>();
+        this.controls = {
+            ...this.properties?.controls,
+            ...DEFAULTS.controls,
+        };
     }
 
     setStore(store: BreakoutStore) {
@@ -139,13 +151,7 @@ export class Breakout {
             return h * yScaleFactor;
         };
 
-        let dpi: number = 1;
-        const handleResize = () => {
-            dpi = window.devicePixelRatio || 1;
-            this.canvas.height = this.canvas.clientHeight * dpi;
-            this.canvas.width = this.canvas.clientWidth * dpi;
-        };
-        handleResize();
+        this.handleResize();
 
         const makeTransform = (id: number): AxesModelTransform => {
             // Read the view on every call so changes to the view are picked up
@@ -265,7 +271,12 @@ export class Breakout {
         paddle.Y = yScale(paddle.Y);
         paddle.height = heightScale(paddle.height);
 
-        let model: BreakoutModel = {
+        // let model: BreakoutModel = {
+        //     blockMatrix: loadedBlocks,
+        //     paddle,
+        //     ball: makeBall(),
+        // };
+        model = {
             blockMatrix: loadedBlocks,
             paddle,
             ball: makeBall(),
@@ -278,93 +289,48 @@ export class Breakout {
         let frameCount = 0;
         let lastReportedScore = -1;
 
-        // Load keyboard events
-        const keySet = new Set<string>();
-        const controls = {
-            ...this.properties?.controls,
-            ...DEFAULTS.controls,
-        } satisfies Required<GameControlProperties>;
-        type BallHiddenState = Ball & { _speedup: boolean };
-        const handleKeyDown = (e: KeyboardEvent) => {
-            keySet.add(e.code);
-            // stop page scrolling
-            if (e.code.startsWith("Arrow") || e.code === "Space") {
-                e.preventDefault();
-            }
-            // Speed up the ball
-            if (controls.speedupKeys.some((k) => k === e.code)) {
-                if (!Object.hasOwn(model.ball, "_speedup")) {
-                    (model.ball as BallHiddenState)._speedup = false;
-                }
-                if (!(model.ball as BallHiddenState)._speedup) {
-                    (model.ball as BallHiddenState)._speedup = true;
-                    model.ball.velocity *= 3;
-                }
-            }
-        };
-        const handleKeyUp = (e: KeyboardEvent) => {
-            keySet.delete(e.code);
-            // Speed up the ball
-            if (controls.speedupKeys.some((k) => k === e.code)) {
-                if (!Object.hasOwn(model.ball, "_speedup")) {
-                    (model.ball as BallHiddenState)._speedup = false;
-                }
-                if ((model.ball as BallHiddenState)._speedup) {
-                    (model.ball as BallHiddenState)._speedup = false;
-                    model.ball.velocity /= 3;
-                }
-            }
-        };
-
-        const handlePointerDown = () => {
-            this.canvas.focus();
-        };
-        const handleBlur = () => {
-            this.setState("pause");
-            keySet.clear();
-        };
-        const handleFocus = () => {
-            if (this.state !== "end") {
-                this.setState("play");
-            }
-        };
-
         // Events
         const { signal } = this.abort;
-        this.canvas.addEventListener("keydown", handleKeyDown, { signal });
-        this.canvas.addEventListener("keyup", handleKeyUp, { signal });
-        this.canvas.addEventListener("pointerdown", handlePointerDown, {
+        this.canvas.addEventListener(
+            "keydown",
+            (e: KeyboardEvent) => this.handleKeyDown(e),
+            {
+                signal,
+            },
+        );
+        this.canvas.addEventListener(
+            "keyup",
+            (e: KeyboardEvent) => this.handleKeyUp(e),
+            {
+                signal,
+            },
+        );
+        this.canvas.addEventListener(
+            "pointerdown",
+            (_: PointerEvent) => this.handlePointerDown(),
+            {
+                signal,
+            },
+        );
+        this.canvas.addEventListener(
+            "blur",
+            (_: FocusEvent) => this.handleBlur(),
+            { signal },
+        );
+        this.canvas.addEventListener(
+            "focus",
+            (_: FocusEvent) => this.handleFocus(),
+            {
+                signal,
+            },
+        );
+        window.addEventListener("resize", (_: UIEvent) => this.handleResize(), {
             signal,
         });
-        this.canvas.addEventListener("blur", handleBlur, { signal });
-        this.canvas.addEventListener("focus", handleFocus, { signal });
-        window.addEventListener("resize", handleResize, { signal });
 
         // Time
         let lastTime: number | null = null;
         let playTime: number = 0;
-
-        const getDirection = () => {
-            let direction: Direction = "none";
-            for (const k of controls.leftKeys) {
-                if (keySet.has(k)) {
-                    direction = "left";
-                    break;
-                }
-            }
-            for (const k of controls.rightKeys) {
-                if (keySet.has(k)) {
-                    // Conflicting directions
-                    if (direction === "left") {
-                        direction = "none";
-                    } else {
-                        direction = "right";
-                    }
-                    break;
-                }
-            }
-            return direction;
-        };
 
         const objects = new ObjectSet();
         objects.add([model.paddle, model.ball, ...model.blockMatrix.flat()]);
@@ -484,7 +450,7 @@ export class Breakout {
                 playTime += deltaTime;
 
                 // Move and out of bounds check
-                model.paddle.direction = getDirection();
+                model.paddle.direction = this.getDirection();
                 objects.all.forEach((e) => e.move(deltaTime));
                 objects.all.forEach((e) => e.checkBounds());
 
@@ -534,6 +500,80 @@ export class Breakout {
     }
 
     private start() {}
+
+    handleKeyDown(e: KeyboardEvent) {
+        type BallHiddenState = Ball & { _speedup: boolean };
+        this.keySet.add(e.code);
+        // stop page scrolling
+        if (e.code.startsWith("Arrow") || e.code === "Space") {
+            e.preventDefault();
+        }
+        // Speed up the ball
+        if (this.controls.speedupKeys.some((k) => k === e.code)) {
+            if (!Object.hasOwn(model.ball, "_speedup")) {
+                (model.ball as BallHiddenState)._speedup = false;
+            }
+            if (!(model.ball as BallHiddenState)._speedup) {
+                (model.ball as BallHiddenState)._speedup = true;
+                model.ball.velocity *= 3;
+            }
+        }
+    }
+    handleKeyUp(e: KeyboardEvent) {
+        type BallHiddenState = Ball & { _speedup: boolean };
+        this.keySet.delete(e.code);
+        // Speed up the ball
+        if (this.controls.speedupKeys.some((k) => k === e.code)) {
+            if (!Object.hasOwn(model.ball, "_speedup")) {
+                (model.ball as BallHiddenState)._speedup = false;
+            }
+            if ((model.ball as BallHiddenState)._speedup) {
+                (model.ball as BallHiddenState)._speedup = false;
+                model.ball.velocity /= 3;
+            }
+        }
+    }
+
+    handlePointerDown() {
+        this.canvas.focus();
+    }
+    handleBlur() {
+        this.setState("pause");
+        this.keySet.clear();
+    }
+    handleFocus() {
+        if (this.state !== "end") {
+            this.setState("play");
+        }
+    }
+
+    handleResize() {
+        const dpi = window.devicePixelRatio || 1;
+        this.canvas.height = this.canvas.clientHeight * dpi;
+        this.canvas.width = this.canvas.clientWidth * dpi;
+    }
+
+    getDirection() {
+        let direction: Direction = "none";
+        for (const k of this.controls.leftKeys) {
+            if (this.keySet.has(k)) {
+                direction = "left";
+                break;
+            }
+        }
+        for (const k of this.controls.rightKeys) {
+            if (this.keySet.has(k)) {
+                // Conflicting directions
+                if (direction === "left") {
+                    direction = "none";
+                } else {
+                    direction = "right";
+                }
+                break;
+            }
+        }
+        return direction;
+    }
 
     destroy() {
         this.running = false;
