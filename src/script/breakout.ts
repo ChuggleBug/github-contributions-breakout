@@ -1,0 +1,514 @@
+import { Paddle } from "../script/model/paddle";
+import { Ball } from "../script/model/ball";
+import type {
+    BreakoutProperties,
+    BlockGrid,
+    GameControlProperties,
+} from "../script/properties/types";
+import type {
+    State,
+    Direction,
+    AxesModelTransform,
+} from "../script/model/types";
+import {
+    ObjectSet,
+    type BreakoutModel,
+    type ModelElement,
+} from "../script/model/core";
+import {
+    paletteFactory,
+    type BreakoutColorPalatte,
+    type ColorPalette,
+} from "../script/palettes/types";
+import * as CONSTANTS from "../script/constants";
+
+import {
+    DEFAULT_STATE,
+    DEFAULTS,
+    rangeSelect,
+} from "../script/properties/defaults";
+import { Block } from "../script/model/block";
+import { GameWindow } from "../script/game/core";
+
+type BreakoutStore = {};
+
+export interface BreakoutOptions {
+    height: number;
+    width: number;
+    startingBlocks: BlockGrid;
+    store?: BreakoutStore;
+    properties?: BreakoutProperties;
+    palette?: BreakoutColorPalatte;
+    customPalette?: ColorPalette;
+}
+
+export class Breakout {
+    readonly canvas: HTMLCanvasElement;
+    private ctx: CanvasRenderingContext2D;
+    private rafId = 0;
+    private running = false;
+    private abort = new AbortController(); // for event listeners
+    private resizeObserver?: ResizeObserver;
+
+    private height: number;
+    private width: number;
+    private startingBlocks: BlockGrid;
+    private store: BreakoutStore;
+    private properties: BreakoutProperties;
+    private palette: BreakoutColorPalatte;
+    private customPalette: ColorPalette | null;
+
+    constructor(opts: BreakoutOptions) {
+        this.height = opts.height;
+        this.width = opts.width;
+        this.startingBlocks = opts.startingBlocks;
+        this.store = opts.store;
+        this.properties = opts.properties ?? DEFAULTS;
+        this.palette = opts.palette ?? "default";
+        this.customPalette = opts.customPalette ?? null;
+
+        // Canvas configurations
+        this.canvas = document.createElement("canvas");
+        this.canvas.id = "breakout";
+        this.canvas.className = "breakout";
+        this.canvas.tabIndex = 0;
+        this.canvas.style.width = `${this.width}px`;
+        this.canvas.style.height = `${this.height}px`;
+
+        // Canvas Context
+        const ctx = this.canvas.getContext("2d");
+        if (!ctx) {
+            throw new Error("2D context not supported");
+        }
+        this.ctx = ctx;
+    }
+
+    mount(parent: HTMLElement) {
+        parent.appendChild(this.canvas);
+        this.init();
+        this.start();
+    }
+
+    private init() {
+        const game = new GameWindow();
+        const gameWidth =
+            (game.mainView.horizontal.end - game.mainView.horizontal.start) *
+            this.width;
+        const gameHeight =
+            (game.mainView.vertical.end - game.mainView.vertical.start) *
+            this.height;
+        const yScaleFactor = gameWidth / gameHeight;
+        const yOffset = (gameHeight - gameWidth) / gameHeight;
+        const yScale = (y: number) => {
+            return y * yScaleFactor + yOffset;
+        };
+        const heightScale = (h: number) => {
+            return h * yScaleFactor;
+        };
+
+        let dpi: number = 1;
+        const handleResize = () => {
+            dpi = window.devicePixelRatio || 1;
+            this.canvas.height = this.canvas.clientHeight * dpi;
+            this.canvas.width = this.canvas.clientWidth * dpi;
+        };
+        handleResize();
+
+        const makeTransform = (id: number): AxesModelTransform => {
+            // Read the view on every call so changes to the view are picked up
+            // automatically. Maps model 0..1 -> view start..end -> device pixels.
+            const modelToX = (modelX: number) => {
+                const { start, end } = game.view(id).horizontal;
+                return (
+                    (start + +modelX.toFixed(5) * (end - start)) *
+                    this.canvas.width
+                );
+            };
+            const modelToY = (modelY: number) => {
+                const { start, end } = game.view(id).vertical;
+                return (
+                    (start + +modelY.toFixed(5) * (end - start)) *
+                    this.canvas.height
+                );
+            };
+            return { X: modelToX, Y: modelToY };
+        };
+
+        const gameTransform = makeTransform(game.mainViewID);
+
+        // Draw Wrapper
+        const drawElement = (e: ModelElement) => {
+            e.draw(this.ctx, gameTransform);
+        };
+
+        const colors = paletteFactory(this.palette, this.customPalette);
+
+        const makeBall = () => {
+            // BallStartState.angleDeg can be either a
+            // range or a number, so a single number needs
+            //  to be resolved during construction
+            const angleDegSafe =
+                this.properties?.ball?.angleDeg ?? DEFAULTS.ball.angleDeg;
+            const XSafe = this.properties?.ball?.X ?? DEFAULTS.ball.X;
+            const YSafe = this.properties?.ball?.Y ?? DEFAULTS.ball.Y;
+
+            const ball = new Ball({
+                ...DEFAULTS.ball,
+                ...this.properties?.ball,
+                X: rangeSelect(XSafe),
+                Y: rangeSelect(YSafe),
+                Z: 1,
+                angleDeg: rangeSelect(angleDegSafe),
+                fillColor: colors.ball,
+            });
+            // Convert ball to real coordinates
+            ball.X -= ball.width / 2;
+            ball.Y -= ball.height / 2;
+            ball.angleDeg = (360 - ball.angleDeg) % 360;
+            ball.Y = yScale(ball.Y);
+            ball.height = heightScale(ball.height);
+            return ball;
+        };
+
+        // Starting State of the model
+        const blockMargin =
+            this.properties?.blocks?.margin ?? DEFAULTS.block.margin;
+        const half = blockMargin / 2;
+        const blockModelLength = 1 / this.startingBlocks.blocksPerRow;
+
+        const blockMatrix: Block[][] = [];
+        for (
+            let i = 0, rowNum = 0;
+            i < this.startingBlocks.blocks.length;
+            i += this.startingBlocks.blocksPerRow, rowNum += 1
+        ) {
+            blockMatrix.push(
+                this.startingBlocks.blocks
+                    .slice(i, i + this.startingBlocks.blocksPerRow)
+                    .map((bd, j) => {
+                        const cellX = j * blockModelLength;
+                        let cellY = yScale(
+                            CONSTANTS.GAME_BLOCK_STARTING_LEVEL -
+                                rowNum * blockModelLength,
+                        );
+                        let block = new Block({
+                            X: cellX + half,
+                            Y: cellY + half,
+                            Z: 2,
+                            width: blockModelLength - blockMargin,
+                            height: heightScale(blockModelLength - blockMargin),
+                            fullHeight: heightScale(blockModelLength),
+                            level: bd.level,
+                            fillColor: colors.blocks,
+                            roundness:
+                                this.properties?.blocks?.roundness ??
+                                DEFAULTS.block.roundness,
+                        });
+                        return block;
+                    }),
+            );
+        }
+        let blockSlice = 0;
+        for (; blockSlice < blockMatrix.length; blockSlice += 1) {
+            // If there is not blocks in this row (all dead)
+            // Then just skip
+            if (
+                blockMatrix[blockSlice]
+                    .filter((b) => b.alive)
+                    .some((b) => !b.visible())
+            ) {
+                break;
+            }
+        }
+        let loadedBlocks = blockMatrix.slice(0, blockSlice);
+        let blockQueue = blockMatrix.slice(blockSlice);
+
+        let paddle = new Paddle({
+            ...DEFAULTS.paddle,
+            ...this.properties?.paddle,
+            fillColor: colors.paddle,
+            Z: 1,
+        });
+        paddle.Y = yScale(paddle.Y);
+        paddle.height = heightScale(paddle.height);
+
+        let model: BreakoutModel = {
+            blockMatrix: loadedBlocks,
+            paddle,
+            ball: makeBall(),
+        };
+        // Convert paddle to real coordinates
+        model.paddle.X -= model.paddle.width / 2;
+        model.paddle.Y -= model.paddle.height / 2;
+        // TODO: Bounds check initial state
+
+        let frameCount = 0;
+        let score = 0;
+        let lastReportedScore = -1;
+        let state: State = DEFAULT_STATE;
+
+        // Load keyboard events
+        const keySet = new Set<string>();
+        const controls = {
+            ...this.properties?.controls,
+            ...DEFAULTS.controls,
+        } satisfies Required<GameControlProperties>;
+        type BallHiddenState = Ball & { _speedup: boolean };
+        const handleKeyDown = (e: KeyboardEvent) => {
+            keySet.add(e.code);
+            // stop page scrolling
+            if (e.code.startsWith("Arrow") || e.code === "Space") {
+                e.preventDefault();
+            }
+            // Speed up the ball
+            if (controls.speedupKeys.some((k) => k === e.code)) {
+                if (!Object.hasOwn(model.ball, "_speedup")) {
+                    (model.ball as BallHiddenState)._speedup = false;
+                }
+                if (!(model.ball as BallHiddenState)._speedup) {
+                    (model.ball as BallHiddenState)._speedup = true;
+                    model.ball.velocity *= 3;
+                }
+            }
+        };
+        const handleKeyUp = (e: KeyboardEvent) => {
+            keySet.delete(e.code);
+            // Speed up the ball
+            if (controls.speedupKeys.some((k) => k === e.code)) {
+                if (!Object.hasOwn(model.ball, "_speedup")) {
+                    (model.ball as BallHiddenState)._speedup = false;
+                }
+                if ((model.ball as BallHiddenState)._speedup) {
+                    (model.ball as BallHiddenState)._speedup = false;
+                    model.ball.velocity /= 3;
+                }
+            }
+        };
+
+        const handlePointerDown = () => {
+            this.canvas.focus();
+        };
+        const handleBlur = () => {
+            state = "pause";
+            keySet.clear();
+        };
+        const handleFocus = () => {
+            if (state !== "end") {
+                state = "play";
+            }
+        };
+
+        // Events
+        const { signal } = this.abort;
+        this.canvas.addEventListener("keydown", handleKeyDown, { signal });
+        this.canvas.addEventListener("keyup", handleKeyUp, { signal });
+        this.canvas.addEventListener("pointerdown", handlePointerDown, {
+            signal,
+        });
+        this.canvas.addEventListener("blur", handleBlur, { signal });
+        this.canvas.addEventListener("focus", handleFocus, { signal });
+        window.addEventListener("resize", handleResize, { signal });
+
+        // Time
+        let lastTime: number | null = null;
+        let playTime: number = 0;
+
+        const getDirection = () => {
+            let direction: Direction = "none";
+            for (const k of controls.leftKeys) {
+                if (keySet.has(k)) {
+                    direction = "left";
+                    break;
+                }
+            }
+            for (const k of controls.rightKeys) {
+                if (keySet.has(k)) {
+                    // Conflicting directions
+                    if (direction === "left") {
+                        direction = "none";
+                    } else {
+                        direction = "right";
+                    }
+                    break;
+                }
+            }
+            return direction;
+        };
+
+        const objects = new ObjectSet();
+        objects.add([model.paddle, model.ball, ...model.blockMatrix.flat()]);
+        // let objects = new Set<ModelElement>();
+
+        const drawGame = () => {
+            this.ctx.fillStyle = colors.background;
+            this.ctx.fillRect(
+                gameTransform.X(0),
+                gameTransform.Y(0),
+                gameTransform.X(1),
+                gameTransform.Y(1),
+            );
+            objects.all.forEach((e) => {
+                drawElement(e);
+            });
+
+            // Draw Borders
+            this.ctx.strokeStyle = "white";
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(
+                gameTransform.X(0),
+                gameTransform.Y(0),
+                gameTransform.X(1),
+                gameTransform.Y(1),
+            );
+            this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
+        };
+
+        let blockDownStepsCountdown = 0;
+        const filterBlocks = () => {
+            let sliceTo = 0;
+            for (let i = 0; i < model.blockMatrix.length; i += 1) {
+                if (model.blockMatrix[sliceTo].every((b) => !b.alive)) {
+                    sliceTo = i + 1;
+                    break;
+                }
+            }
+
+            if (sliceTo > 0) {
+                blockDownStepsCountdown +=
+                    CONSTANTS.GAME_BLOCK_DOWN_STEPS * sliceTo;
+
+                const topRow = model.blockMatrix[model.blockMatrix.length - 1];
+                const topY = topRow[0].Y;
+                const rowPitch = topRow[0].fullHeight;
+
+                const toDelete = model.blockMatrix.slice(0, sliceTo);
+                model.blockMatrix = model.blockMatrix.slice(sliceTo);
+                const toAdd = blockQueue.slice(0, sliceTo);
+                blockQueue = blockQueue.slice(sliceTo);
+
+                toAdd.forEach((row, i) => {
+                    row.forEach((b) => {
+                        b.Y = topY - (i + 1) * rowPitch;
+                    });
+                });
+
+                objects.delete(toDelete.flat());
+                objects.add(toAdd.flat());
+
+                toAdd.forEach((r) => model.blockMatrix.push(r));
+                model.blockMatrix.flat().forEach((b) => (b.canMove = true));
+            }
+            // Game end check
+            if (model.blockMatrix.length <= 0) {
+                state = "end";
+            }
+        };
+
+        filterBlocks();
+        const render = (time: number) => {
+            console.log(
+                "Blocks: ",
+                objects.all.filter((e) => e instanceof Block).length,
+            );
+            if (lastTime === null) {
+                lastTime = time;
+            }
+            let deltaTime = (time - lastTime) / 1000;
+            lastTime = time;
+            deltaTime = Math.min(deltaTime, CONSTANTS.GAME_MAX_DELTA_TIME);
+            if (state === "end") {
+                this.ctx.filter = "brightness(50%)";
+                drawGame();
+                this.ctx.filter = "none";
+                this.ctx.fillStyle = "#fff";
+                this.ctx.textAlign = "center";
+                this.ctx.textBaseline = "middle";
+                this.ctx.font = `${gameTransform.Y(0.1)}px monospace`;
+                this.ctx.fillText(
+                    "Game End",
+                    gameTransform.X(0.5),
+                    gameTransform.Y(0.5),
+                );
+                return;
+            }
+            if (state === "pause") {
+                this.ctx.filter = "brightness(50%)";
+                drawGame();
+                this.ctx.filter = "none";
+                this.ctx.fillStyle = "#fff";
+                this.ctx.textAlign = "center";
+                this.ctx.textBaseline = "middle";
+                this.ctx.font = `${gameTransform.Y(0.1)}px monospace`;
+                this.ctx.fillText(
+                    "Paused",
+                    gameTransform.X(0.5),
+                    gameTransform.Y(0.5),
+                );
+            } else if (state === "start") {
+                // Only draw all the elements
+                this.ctx.filter = "brightness(50%)";
+                drawGame();
+                this.ctx.filter = "none";
+            } else if (state === "play") {
+                playTime += deltaTime;
+
+                // Move and out of bounds check
+                model.paddle.direction = getDirection();
+                objects.all.forEach((e) => e.move(deltaTime));
+                objects.all.forEach((e) => e.checkBounds());
+
+                // Block Steps
+                if (blockDownStepsCountdown > 0) {
+                    blockDownStepsCountdown -= 1;
+                    if (blockDownStepsCountdown === 0) {
+                        model.blockMatrix
+                            .flat()
+                            .forEach((b) => (b.canMove = false));
+                    }
+                }
+
+                // Collisions
+                for (const obj of objects.all) {
+                    if (model.ball.collides(obj)) {
+                        model.ball.handleCollision(obj);
+                    }
+                }
+                filterBlocks();
+
+                // Ball Deletion, and respawn logic
+                if (objects.has(model.ball) && model.ball.boundHits.bottom) {
+                    objects.delete(model.ball);
+                    model.ball = makeBall();
+                    objects.add(model.ball);
+                    model.ball.canMove = false;
+                    setTimeout(() => {
+                        model.ball.canMove = true;
+                    }, CONSTANTS.GAME_BALL_RESPAWN_TIME_MS);
+                }
+
+                // Drawing
+                drawGame();
+
+                // TOOD: Modify this
+                score = Math.floor(playTime);
+                if (score !== lastReportedScore) {
+                    lastReportedScore = score;
+                }
+            }
+
+            frameCount++;
+            this.rafId = window.requestAnimationFrame(render);
+        };
+        this.rafId = window.requestAnimationFrame(render);
+    }
+
+    private start() {}
+
+    destroy() {
+        this.running = false;
+        cancelAnimationFrame(this.rafId);
+        this.abort.abort(); // removes all listeners added with { signal }
+        this.resizeObserver?.disconnect();
+        this.canvas.remove();
+    }
+}
