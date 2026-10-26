@@ -44,8 +44,6 @@ export type BreakoutStore = {
 };
 
 let model: BreakoutModel;
-let loadedBlocks: Block[][];
-let blockQueue: Block[][];
 let objects: ObjectSet;
 
 type ViewName = "game" | "sidebar";
@@ -145,7 +143,7 @@ export class Breakout {
         this.start();
     }
 
-    private initialize() {
+    private makeBreakoutModel() {
         const game = new GameWindow();
         const gameWidth =
             (game.mainView.horizontal.end - game.mainView.horizontal.start) *
@@ -268,8 +266,8 @@ export class Breakout {
                 break;
             }
         }
-        loadedBlocks = blockMatrix.slice(0, blockSlice);
-        blockQueue = blockMatrix.slice(blockSlice);
+        const loadedBlocks = blockMatrix.slice(0, blockSlice);
+        const blockQueue = blockMatrix.slice(blockSlice);
 
         let paddle = new Paddle({
             ...DEFAULTS.paddle,
@@ -281,14 +279,19 @@ export class Breakout {
         paddle.height = heightScale(paddle.height);
 
         model = {
-            blockMatrix: loadedBlocks,
+            activeBlocks: loadedBlocks,
+            blockQueue: blockQueue,
             paddle,
             ball: makeBall(),
+            ballCreate: makeBall,
         };
         // Convert paddle to real coordinates
         model.paddle.X -= model.paddle.width / 2;
         model.paddle.Y -= model.paddle.height / 2;
-        // TODO: Bounds check initial state
+    }
+
+    private initialize() {
+        this.makeBreakoutModel();
 
         let frameCount = 0;
         let lastReportedScore = -1;
@@ -337,7 +340,7 @@ export class Breakout {
         let playTime: number = 0;
 
         objects = new ObjectSet();
-        objects.add([model.paddle, model.ball, ...model.blockMatrix.flat()]);
+        objects.add([model.paddle, model.ball, ...model.activeBlocks.flat()]);
 
         this.filterBlocks();
         const render = (time: number) => {
@@ -398,7 +401,7 @@ export class Breakout {
                     if (this.blockDownStepsCountdown > 0) {
                         this.blockDownStepsCountdown -= 1;
                         if (this.blockDownStepsCountdown === 0) {
-                            model.blockMatrix
+                            model.activeBlocks
                                 .flat()
                                 .forEach((b) => (b.canMove = false));
                         }
@@ -418,7 +421,7 @@ export class Breakout {
                         model.ball.boundHits.bottom
                     ) {
                         objects.delete(model.ball);
-                        model.ball = makeBall();
+                        model.ball = model.ballCreate();
                         objects.add(model.ball);
                         model.ball.canMove = false;
                         setTimeout(() => {
@@ -524,8 +527,8 @@ export class Breakout {
 
     filterBlocks() {
         let sliceTo = 0;
-        for (let i = 0; i < model.blockMatrix.length; i += 1) {
-            if (model.blockMatrix[sliceTo].every((b) => !b.alive)) {
+        for (let i = 0; i < model.activeBlocks.length; i += 1) {
+            if (model.activeBlocks[sliceTo].every((b) => !b.alive)) {
                 sliceTo = i + 1;
                 break;
             }
@@ -535,14 +538,14 @@ export class Breakout {
             this.blockDownStepsCountdown +=
                 CONSTANTS.GAME_BLOCK_DOWN_STEPS * sliceTo;
 
-            const topRow = model.blockMatrix[model.blockMatrix.length - 1];
+            const topRow = model.activeBlocks[model.activeBlocks.length - 1];
             const topY = topRow[0].Y;
             const rowPitch = topRow[0].fullHeight;
 
-            const toDelete = model.blockMatrix.slice(0, sliceTo);
-            model.blockMatrix = model.blockMatrix.slice(sliceTo);
-            const toAdd = blockQueue.slice(0, sliceTo);
-            blockQueue = blockQueue.slice(sliceTo);
+            const toDelete = model.activeBlocks.slice(0, sliceTo);
+            model.activeBlocks = model.activeBlocks.slice(sliceTo);
+            const toAdd = model.blockQueue.slice(0, sliceTo);
+            model.blockQueue = model.blockQueue.slice(sliceTo);
 
             toAdd.forEach((row, i) => {
                 row.forEach((b) => {
@@ -553,11 +556,11 @@ export class Breakout {
             objects.delete(toDelete.flat());
             objects.add(toAdd.flat());
 
-            toAdd.forEach((r) => model.blockMatrix.push(r));
-            model.blockMatrix.flat().forEach((b) => (b.canMove = true));
+            toAdd.forEach((r) => model.activeBlocks.push(r));
+            model.activeBlocks.flat().forEach((b) => (b.canMove = true));
         }
         // Game end check
-        if (model.blockMatrix.length <= 0) {
+        if (model.activeBlocks.length <= 0) {
             this.setState("end");
         }
     }
