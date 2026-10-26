@@ -55,7 +55,6 @@ export default function Breakout({
         }
 
         const game = new GameWindow();
-        const sidebarID = game.splitView(game.mainViewID, 0.9, "vertical");
         const gameWidth =
             (game.mainView.horizontal.end - game.mainView.horizontal.start) *
             width;
@@ -387,7 +386,11 @@ export default function Breakout({
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.font = `${gameTransform.Y(0.1)}px monospace`;
-                ctx.fillText("Game End", gameTransform.X(0.5), gameTransform.Y(0.5));
+                ctx.fillText(
+                    "Game End",
+                    gameTransform.X(0.5),
+                    gameTransform.Y(0.5),
+                );
                 return;
             }
             if (state === "pause") {
@@ -398,7 +401,11 @@ export default function Breakout({
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.font = `${gameTransform.Y(0.1)}px monospace`;
-                ctx.fillText("Paused", gameTransform.X(0.5), gameTransform.Y(0.5));
+                ctx.fillText(
+                    "Paused",
+                    gameTransform.X(0.5),
+                    gameTransform.Y(0.5),
+                );
             } else if (state === "start") {
                 // Only draw all the elements
                 ctx.filter = "brightness(50%)";

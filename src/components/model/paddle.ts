@@ -1,5 +1,5 @@
 import { ModelElement, wallHits } from "./core";
-import type { Direction, BoundingBox, AxesModelTransform } from "./types";
+import type { Direction, AxesModelTransform } from "./types";
 import type { PaddleStruct } from "./types";
 
 export class Paddle extends ModelElement {
