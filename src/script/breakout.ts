@@ -48,6 +48,10 @@ export type BreakoutStore = {
 };
 
 let model: BreakoutModel;
+let loadedBlocks: Block[][];
+let blockQueue: Block[][];
+let objects: ObjectSet;
+let gameTransform: AxesModelTransform;
 
 export class Breakout {
     readonly canvas: HTMLCanvasElement;
@@ -69,6 +73,8 @@ export class Breakout {
     // Internal state from BreakoutState
     private state: State = DEFAULT_STATE;
     private seconds: number = 0;
+    private colors: ColorPalette;
+    private blockDownStepsCountdown: number;
 
     // Internal State
     private keySet: Set<string>;
@@ -104,11 +110,14 @@ export class Breakout {
         }
         this.ctx = ctx;
 
+        // Internal Game State
         this.keySet = new Set<string>();
         this.controls = {
             ...this.properties?.controls,
             ...DEFAULTS.controls,
         };
+        this.blockDownStepsCountdown = 0;
+        this.colors = paletteFactory(this.palette, this.customPalette);
     }
 
     setStore(store: BreakoutStore) {
@@ -173,14 +182,7 @@ export class Breakout {
             return { X: modelToX, Y: modelToY };
         };
 
-        const gameTransform = makeTransform(game.mainViewID);
-
-        // Draw Wrapper
-        const drawElement = (e: ModelElement) => {
-            e.draw(this.ctx, gameTransform);
-        };
-
-        const colors = paletteFactory(this.palette, this.customPalette);
+        gameTransform = makeTransform(game.mainViewID);
 
         const makeBall = () => {
             // BallStartState.angleDeg can be either a
@@ -198,7 +200,7 @@ export class Breakout {
                 Y: rangeSelect(YSafe),
                 Z: 1,
                 angleDeg: rangeSelect(angleDegSafe),
-                fillColor: colors.ball,
+                fillColor: this.colors.ball,
             });
             // Convert ball to real coordinates
             ball.X -= ball.width / 2;
@@ -238,7 +240,7 @@ export class Breakout {
                             height: heightScale(blockModelLength - blockMargin),
                             fullHeight: heightScale(blockModelLength),
                             level: bd.level,
-                            fillColor: colors.blocks,
+                            fillColor: this.colors.blocks,
                             roundness:
                                 this.properties?.blocks?.roundness ??
                                 DEFAULTS.block.roundness,
@@ -259,13 +261,13 @@ export class Breakout {
                 break;
             }
         }
-        let loadedBlocks = blockMatrix.slice(0, blockSlice);
-        let blockQueue = blockMatrix.slice(blockSlice);
+        loadedBlocks = blockMatrix.slice(0, blockSlice);
+        blockQueue = blockMatrix.slice(blockSlice);
 
         let paddle = new Paddle({
             ...DEFAULTS.paddle,
             ...this.properties?.paddle,
-            fillColor: colors.paddle,
+            fillColor: this.colors.paddle,
             Z: 1,
         });
         paddle.Y = yScale(paddle.Y);
@@ -332,76 +334,10 @@ export class Breakout {
         let lastTime: number | null = null;
         let playTime: number = 0;
 
-        const objects = new ObjectSet();
+        objects = new ObjectSet();
         objects.add([model.paddle, model.ball, ...model.blockMatrix.flat()]);
-        // let objects = new Set<ModelElement>();
 
-        const drawGame = () => {
-            this.ctx.fillStyle = colors.background;
-            this.ctx.fillRect(
-                gameTransform.X(0),
-                gameTransform.Y(0),
-                gameTransform.X(1),
-                gameTransform.Y(1),
-            );
-            objects.all.forEach((e) => {
-                drawElement(e);
-            });
-
-            // Draw Borders
-            this.ctx.strokeStyle = "white";
-            this.ctx.lineWidth = 2;
-            this.ctx.strokeRect(
-                gameTransform.X(0),
-                gameTransform.Y(0),
-                gameTransform.X(1),
-                gameTransform.Y(1),
-            );
-            this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
-        };
-
-        let blockDownStepsCountdown = 0;
-        const filterBlocks = () => {
-            let sliceTo = 0;
-            for (let i = 0; i < model.blockMatrix.length; i += 1) {
-                if (model.blockMatrix[sliceTo].every((b) => !b.alive)) {
-                    sliceTo = i + 1;
-                    break;
-                }
-            }
-
-            if (sliceTo > 0) {
-                blockDownStepsCountdown +=
-                    CONSTANTS.GAME_BLOCK_DOWN_STEPS * sliceTo;
-
-                const topRow = model.blockMatrix[model.blockMatrix.length - 1];
-                const topY = topRow[0].Y;
-                const rowPitch = topRow[0].fullHeight;
-
-                const toDelete = model.blockMatrix.slice(0, sliceTo);
-                model.blockMatrix = model.blockMatrix.slice(sliceTo);
-                const toAdd = blockQueue.slice(0, sliceTo);
-                blockQueue = blockQueue.slice(sliceTo);
-
-                toAdd.forEach((row, i) => {
-                    row.forEach((b) => {
-                        b.Y = topY - (i + 1) * rowPitch;
-                    });
-                });
-
-                objects.delete(toDelete.flat());
-                objects.add(toAdd.flat());
-
-                toAdd.forEach((r) => model.blockMatrix.push(r));
-                model.blockMatrix.flat().forEach((b) => (b.canMove = true));
-            }
-            // Game end check
-            if (model.blockMatrix.length <= 0) {
-                this.setState("end");
-            }
-        };
-
-        filterBlocks();
+        this.filterBlocks();
         const render = (time: number) => {
             console.log(
                 "Blocks: ",
@@ -414,8 +350,7 @@ export class Breakout {
             lastTime = time;
             deltaTime = Math.min(deltaTime, CONSTANTS.GAME_MAX_DELTA_TIME);
             if (this.state === "end") {
-                // this.ctx.filter = "blur(2px)";
-                drawGame();
+                this.drawGame();
                 this.ctx.filter = "none";
                 this.ctx.fillStyle = "#fff";
                 this.ctx.textAlign = "center";
@@ -429,8 +364,7 @@ export class Breakout {
                 return;
             }
             if (this.state === "pause") {
-                // this.ctx.filter = "blur(2px)";
-                drawGame();
+                this.drawGame();
                 this.ctx.filter = "none";
                 this.ctx.fillStyle = "#fff";
                 this.ctx.textAlign = "center";
@@ -443,8 +377,7 @@ export class Breakout {
                 );
             } else if (this.state === "start") {
                 // Only draw all the elements
-                this.ctx.filter = "brightness(50%)";
-                drawGame();
+                this.drawGame();
                 this.ctx.filter = "none";
             } else if (this.state === "play") {
                 playTime += deltaTime;
@@ -455,9 +388,9 @@ export class Breakout {
                 objects.all.forEach((e) => e.checkBounds());
 
                 // Block Steps
-                if (blockDownStepsCountdown > 0) {
-                    blockDownStepsCountdown -= 1;
-                    if (blockDownStepsCountdown === 0) {
+                if (this.blockDownStepsCountdown > 0) {
+                    this.blockDownStepsCountdown -= 1;
+                    if (this.blockDownStepsCountdown === 0) {
                         model.blockMatrix
                             .flat()
                             .forEach((b) => (b.canMove = false));
@@ -470,7 +403,7 @@ export class Breakout {
                         model.ball.handleCollision(obj);
                     }
                 }
-                filterBlocks();
+                this.filterBlocks();
 
                 // Ball Deletion, and respawn logic
                 if (objects.has(model.ball) && model.ball.boundHits.bottom) {
@@ -484,7 +417,7 @@ export class Breakout {
                 }
 
                 // Drawing
-                drawGame();
+                this.drawGame();
 
                 // TOOD: Modify this
                 this.setSeconds(Math.floor(playTime));
@@ -573,6 +506,70 @@ export class Breakout {
             }
         }
         return direction;
+    }
+
+    filterBlocks() {
+        let sliceTo = 0;
+        for (let i = 0; i < model.blockMatrix.length; i += 1) {
+            if (model.blockMatrix[sliceTo].every((b) => !b.alive)) {
+                sliceTo = i + 1;
+                break;
+            }
+        }
+
+        if (sliceTo > 0) {
+            this.blockDownStepsCountdown +=
+                CONSTANTS.GAME_BLOCK_DOWN_STEPS * sliceTo;
+
+            const topRow = model.blockMatrix[model.blockMatrix.length - 1];
+            const topY = topRow[0].Y;
+            const rowPitch = topRow[0].fullHeight;
+
+            const toDelete = model.blockMatrix.slice(0, sliceTo);
+            model.blockMatrix = model.blockMatrix.slice(sliceTo);
+            const toAdd = blockQueue.slice(0, sliceTo);
+            blockQueue = blockQueue.slice(sliceTo);
+
+            toAdd.forEach((row, i) => {
+                row.forEach((b) => {
+                    b.Y = topY - (i + 1) * rowPitch;
+                });
+            });
+
+            objects.delete(toDelete.flat());
+            objects.add(toAdd.flat());
+
+            toAdd.forEach((r) => model.blockMatrix.push(r));
+            model.blockMatrix.flat().forEach((b) => (b.canMove = true));
+        }
+        // Game end check
+        if (model.blockMatrix.length <= 0) {
+            this.setState("end");
+        }
+    }
+
+    drawGame() {
+        this.ctx.fillStyle = this.colors.background;
+        this.ctx.fillRect(
+            gameTransform.X(0),
+            gameTransform.Y(0),
+            gameTransform.X(1),
+            gameTransform.Y(1),
+        );
+        objects.all.forEach((e) => {
+            e.draw(this.ctx, gameTransform);
+        });
+
+        // Draw Borders
+        this.ctx.strokeStyle = "white";
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(
+            gameTransform.X(0),
+            gameTransform.Y(0),
+            gameTransform.X(1),
+            gameTransform.Y(1),
+        );
+        this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     destroy() {
