@@ -140,10 +140,11 @@ export abstract class ModelElement {
     ): void;
 }
 
-export type BreakoutModel = {
+export interface BreakoutModel {
     paddle: Paddle;
     ball: Ball;
     activeBlocks: Block[][];
     blockQueue: Block[][];
     ballCreate: () => Ball;
-};
+    objects: ObjectSet;
+}

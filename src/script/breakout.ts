@@ -43,9 +43,6 @@ export type BreakoutStore = {
     setState: (state: State) => void;
 };
 
-let model: BreakoutModel;
-let objects: ObjectSet;
-
 type ViewName = "game" | "sidebar";
 
 export class Breakout {
@@ -75,6 +72,7 @@ export class Breakout {
     private keySet: Set<string>;
     private controls: Required<GameControlProperties>;
     private transformations: Record<ViewName, AxesModelTransform | null>;
+    private model: BreakoutModel;
 
     constructor(opts: BreakoutOptions) {
         this.height = opts.height;
@@ -118,6 +116,7 @@ export class Breakout {
             game: null,
             sidebar: null,
         };
+        this.model = this.makeBreakoutModel();
     }
 
     setStore(store: BreakoutStore) {
@@ -278,16 +277,26 @@ export class Breakout {
         paddle.Y = yScale(paddle.Y);
         paddle.height = heightScale(paddle.height);
 
-        model = {
+        const objects = new ObjectSet();
+        const gameModel = {
             activeBlocks: loadedBlocks,
             blockQueue: blockQueue,
             paddle,
             ball: makeBall(),
             ballCreate: makeBall,
+            objects,
         };
+        gameModel.objects.add([
+            gameModel.paddle,
+            gameModel.ball,
+            ...gameModel.activeBlocks.flat(),
+        ]);
+
         // Convert paddle to real coordinates
-        model.paddle.X -= model.paddle.width / 2;
-        model.paddle.Y -= model.paddle.height / 2;
+        gameModel.paddle.X -= gameModel.paddle.width / 2;
+        gameModel.paddle.Y -= gameModel.paddle.height / 2;
+
+        return gameModel;
     }
 
     private initialize() {
@@ -339,14 +348,11 @@ export class Breakout {
         let lastTime: number | null = null;
         let playTime: number = 0;
 
-        objects = new ObjectSet();
-        objects.add([model.paddle, model.ball, ...model.activeBlocks.flat()]);
-
         this.filterBlocks();
         const render = (time: number) => {
             console.log(
                 "Blocks: ",
-                objects.all.filter((e) => e instanceof Block).length,
+                this.model.objects.all.filter((e) => e instanceof Block).length,
             );
             if (lastTime === null) {
                 lastTime = time;
@@ -393,39 +399,39 @@ export class Breakout {
                     playTime += deltaTime;
 
                     // Move and out of bounds check
-                    model.paddle.direction = this.getDirection();
-                    objects.all.forEach((e) => e.move(deltaTime));
-                    objects.all.forEach((e) => e.checkBounds());
+                    this.model.paddle.direction = this.getDirection();
+                    this.model.objects.all.forEach((e) => e.move(deltaTime));
+                    this.model.objects.all.forEach((e) => e.checkBounds());
 
                     // Block Steps
                     if (this.blockDownStepsCountdown > 0) {
                         this.blockDownStepsCountdown -= 1;
                         if (this.blockDownStepsCountdown === 0) {
-                            model.activeBlocks
+                            this.model.activeBlocks
                                 .flat()
                                 .forEach((b) => (b.canMove = false));
                         }
                     }
 
                     // Collisions
-                    for (const obj of objects.all) {
-                        if (model.ball.collides(obj)) {
-                            model.ball.handleCollision(obj);
+                    for (const obj of this.model.objects.all) {
+                        if (this.model.ball.collides(obj)) {
+                            this.model.ball.handleCollision(obj);
                         }
                     }
                     this.filterBlocks();
 
                     // Ball Deletion, and respawn logic
                     if (
-                        objects.has(model.ball) &&
-                        model.ball.boundHits.bottom
+                        this.model.objects.has(this.model.ball) &&
+                        this.model.ball.boundHits.bottom
                     ) {
-                        objects.delete(model.ball);
-                        model.ball = model.ballCreate();
-                        objects.add(model.ball);
-                        model.ball.canMove = false;
+                        this.model.objects.delete(this.model.ball);
+                        this.model.ball = this.model.ballCreate();
+                        this.model.objects.add(this.model.ball);
+                        this.model.ball.canMove = false;
                         setTimeout(() => {
-                            model.ball.canMove = true;
+                            this.model.ball.canMove = true;
                         }, CONSTANTS.GAME_BALL_RESPAWN_TIME_MS);
                     }
 
@@ -460,12 +466,12 @@ export class Breakout {
         }
         // Speed up the ball
         if (this.controls.speedupKeys.some((k) => k === e.code)) {
-            if (!Object.hasOwn(model.ball, "_speedup")) {
-                (model.ball as BallHiddenState)._speedup = false;
+            if (!Object.hasOwn(this.model.ball, "_speedup")) {
+                (this.model.ball as BallHiddenState)._speedup = false;
             }
-            if (!(model.ball as BallHiddenState)._speedup) {
-                (model.ball as BallHiddenState)._speedup = true;
-                model.ball.velocity *= 3;
+            if (!(this.model.ball as BallHiddenState)._speedup) {
+                (this.model.ball as BallHiddenState)._speedup = true;
+                this.model.ball.velocity *= 3;
             }
         }
     }
@@ -474,12 +480,12 @@ export class Breakout {
         this.keySet.delete(e.code);
         // Speed up the ball
         if (this.controls.speedupKeys.some((k) => k === e.code)) {
-            if (!Object.hasOwn(model.ball, "_speedup")) {
-                (model.ball as BallHiddenState)._speedup = false;
+            if (!Object.hasOwn(this.model.ball, "_speedup")) {
+                (this.model.ball as BallHiddenState)._speedup = false;
             }
-            if ((model.ball as BallHiddenState)._speedup) {
-                (model.ball as BallHiddenState)._speedup = false;
-                model.ball.velocity /= 3;
+            if ((this.model.ball as BallHiddenState)._speedup) {
+                (this.model.ball as BallHiddenState)._speedup = false;
+                this.model.ball.velocity /= 3;
             }
         }
     }
@@ -527,8 +533,8 @@ export class Breakout {
 
     filterBlocks() {
         let sliceTo = 0;
-        for (let i = 0; i < model.activeBlocks.length; i += 1) {
-            if (model.activeBlocks[sliceTo].every((b) => !b.alive)) {
+        for (let i = 0; i < this.model.activeBlocks.length; i += 1) {
+            if (this.model.activeBlocks[sliceTo].every((b) => !b.alive)) {
                 sliceTo = i + 1;
                 break;
             }
@@ -538,14 +544,15 @@ export class Breakout {
             this.blockDownStepsCountdown +=
                 CONSTANTS.GAME_BLOCK_DOWN_STEPS * sliceTo;
 
-            const topRow = model.activeBlocks[model.activeBlocks.length - 1];
+            const topRow =
+                this.model.activeBlocks[this.model.activeBlocks.length - 1];
             const topY = topRow[0].Y;
             const rowPitch = topRow[0].fullHeight;
 
-            const toDelete = model.activeBlocks.slice(0, sliceTo);
-            model.activeBlocks = model.activeBlocks.slice(sliceTo);
-            const toAdd = model.blockQueue.slice(0, sliceTo);
-            model.blockQueue = model.blockQueue.slice(sliceTo);
+            const toDelete = this.model.activeBlocks.slice(0, sliceTo);
+            this.model.activeBlocks = this.model.activeBlocks.slice(sliceTo);
+            const toAdd = this.model.blockQueue.slice(0, sliceTo);
+            this.model.blockQueue = this.model.blockQueue.slice(sliceTo);
 
             toAdd.forEach((row, i) => {
                 row.forEach((b) => {
@@ -553,14 +560,14 @@ export class Breakout {
                 });
             });
 
-            objects.delete(toDelete.flat());
-            objects.add(toAdd.flat());
+            this.model.objects.delete(toDelete.flat());
+            this.model.objects.add(toAdd.flat());
 
-            toAdd.forEach((r) => model.activeBlocks.push(r));
-            model.activeBlocks.flat().forEach((b) => (b.canMove = true));
+            toAdd.forEach((r) => this.model.activeBlocks.push(r));
+            this.model.activeBlocks.flat().forEach((b) => (b.canMove = true));
         }
         // Game end check
-        if (model.activeBlocks.length <= 0) {
+        if (this.model.activeBlocks.length <= 0) {
             this.setState("end");
         }
     }
@@ -573,7 +580,7 @@ export class Breakout {
             this.transformations.game!.X(1),
             this.transformations.game!.Y(1),
         );
-        objects.all.forEach((e) => {
+        this.model.objects.all.forEach((e) => {
             e.draw(this.ctx, this.transformations.game!);
         });
 
