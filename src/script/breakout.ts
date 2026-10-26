@@ -184,7 +184,7 @@ export class Breakout {
             return { X: modelToX, Y: modelToY };
         };
 
-        // Make view transformations
+        // Make view transformation functions
         this.transformations["game"] = makeTransform(game.mainViewID);
         if (this.startingBlocks.blockRowIndicator) {
             const sidebarID = game.splitView(game.mainViewID, 0.9, "vertical");
@@ -280,11 +280,6 @@ export class Breakout {
         paddle.Y = yScale(paddle.Y);
         paddle.height = heightScale(paddle.height);
 
-        // let model: BreakoutModel = {
-        //     blockMatrix: loadedBlocks,
-        //     paddle,
-        //     ball: makeBall(),
-        // };
         model = {
             blockMatrix: loadedBlocks,
             paddle,
@@ -356,80 +351,92 @@ export class Breakout {
             let deltaTime = (time - lastTime) / 1000;
             lastTime = time;
             deltaTime = Math.min(deltaTime, CONSTANTS.GAME_MAX_DELTA_TIME);
-            if (this.state === "end") {
-                this.drawGame();
-                this.ctx.filter = "none";
-                this.ctx.fillStyle = "#fff";
-                this.ctx.textAlign = "center";
-                this.ctx.textBaseline = "middle";
-                this.ctx.font = `${this.transformations.game!.Y(0.1)}px monospace`;
-                this.ctx.fillText(
-                    "Game End",
-                    this.transformations.game!.X(0.5),
-                    this.transformations.game!.Y(0.5),
-                );
-                return;
-            }
-            if (this.state === "pause") {
-                this.drawGame();
-                this.ctx.filter = "none";
-                this.ctx.fillStyle = "#fff";
-                this.ctx.textAlign = "center";
-                this.ctx.textBaseline = "middle";
-                this.ctx.font = `${this.transformations.game!.Y(0.1)}px monospace`;
-                this.ctx.fillText(
-                    "Paused",
-                    this.transformations.game!.X(0.5),
-                    this.transformations.game!.Y(0.5),
-                );
-            } else if (this.state === "start") {
-                // Only draw all the elements
-                this.drawGame();
-                this.ctx.filter = "none";
-            } else if (this.state === "play") {
-                playTime += deltaTime;
+            switch (this.state) {
+                case "end": {
+                    this.drawGame();
+                    this.ctx.filter = "none";
+                    this.ctx.fillStyle = "#fff";
+                    this.ctx.textAlign = "center";
+                    this.ctx.textBaseline = "middle";
+                    this.ctx.font = `${this.transformations.game!.Y(0.1)}px monospace`;
+                    this.ctx.fillText(
+                        "Game End",
+                        this.transformations.game!.X(0.5),
+                        this.transformations.game!.Y(0.5),
+                    );
+                    return;
+                }
+                case "pause": {
+                    this.drawGame();
+                    this.ctx.filter = "none";
+                    this.ctx.fillStyle = "#fff";
+                    this.ctx.textAlign = "center";
+                    this.ctx.textBaseline = "middle";
+                    this.ctx.font = `${this.transformations.game!.Y(0.1)}px monospace`;
+                    this.ctx.fillText(
+                        "Paused",
+                        this.transformations.game!.X(0.5),
+                        this.transformations.game!.Y(0.5),
+                    );
+                    break;
+                }
+                case "start": {
+                    // Only draw all the elements
+                    this.drawGame();
+                    this.ctx.filter = "none";
+                    break;
+                }
+                case "play": {
+                    playTime += deltaTime;
 
-                // Move and out of bounds check
-                model.paddle.direction = this.getDirection();
-                objects.all.forEach((e) => e.move(deltaTime));
-                objects.all.forEach((e) => e.checkBounds());
+                    // Move and out of bounds check
+                    model.paddle.direction = this.getDirection();
+                    objects.all.forEach((e) => e.move(deltaTime));
+                    objects.all.forEach((e) => e.checkBounds());
 
-                // Block Steps
-                if (this.blockDownStepsCountdown > 0) {
-                    this.blockDownStepsCountdown -= 1;
-                    if (this.blockDownStepsCountdown === 0) {
-                        model.blockMatrix
-                            .flat()
-                            .forEach((b) => (b.canMove = false));
+                    // Block Steps
+                    if (this.blockDownStepsCountdown > 0) {
+                        this.blockDownStepsCountdown -= 1;
+                        if (this.blockDownStepsCountdown === 0) {
+                            model.blockMatrix
+                                .flat()
+                                .forEach((b) => (b.canMove = false));
+                        }
                     }
-                }
 
-                // Collisions
-                for (const obj of objects.all) {
-                    if (model.ball.collides(obj)) {
-                        model.ball.handleCollision(obj);
+                    // Collisions
+                    for (const obj of objects.all) {
+                        if (model.ball.collides(obj)) {
+                            model.ball.handleCollision(obj);
+                        }
                     }
+                    this.filterBlocks();
+
+                    // Ball Deletion, and respawn logic
+                    if (
+                        objects.has(model.ball) &&
+                        model.ball.boundHits.bottom
+                    ) {
+                        objects.delete(model.ball);
+                        model.ball = makeBall();
+                        objects.add(model.ball);
+                        model.ball.canMove = false;
+                        setTimeout(() => {
+                            model.ball.canMove = true;
+                        }, CONSTANTS.GAME_BALL_RESPAWN_TIME_MS);
+                    }
+
+                    // Drawing
+                    this.drawGame();
+
+                    this.setSeconds(Math.floor(playTime));
+                    if (this.seconds !== lastReportedScore) {
+                        lastReportedScore = this.seconds;
+                    }
+                    break;
                 }
-                this.filterBlocks();
-
-                // Ball Deletion, and respawn logic
-                if (objects.has(model.ball) && model.ball.boundHits.bottom) {
-                    objects.delete(model.ball);
-                    model.ball = makeBall();
-                    objects.add(model.ball);
-                    model.ball.canMove = false;
-                    setTimeout(() => {
-                        model.ball.canMove = true;
-                    }, CONSTANTS.GAME_BALL_RESPAWN_TIME_MS);
-                }
-
-                // Drawing
-                this.drawGame();
-
-                // TOOD: Modify this
-                this.setSeconds(Math.floor(playTime));
-                if (this.seconds !== lastReportedScore) {
-                    lastReportedScore = this.seconds;
+                default: {
+                    throw new Error(`Invalid game state: ${this.state}`);
                 }
             }
 
