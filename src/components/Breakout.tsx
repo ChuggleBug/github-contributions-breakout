@@ -6,7 +6,7 @@ import { Breakout, type BreakoutOptions } from "../script/breakout";
 type BreakoutProps = BreakoutOptions;
 
 export default function GameComponent(props: BreakoutProps) {
-    const containerRef = useRef<HTMLDivElement | null>(null);
+    const containerRef = useRef<HTMLCanvasElement | null>(null);
     const gameRef = useRef<Breakout | null>(null);
 
     // Create once, destroy on unmount
@@ -17,7 +17,7 @@ export default function GameComponent(props: BreakoutProps) {
         }
 
         const game = new Breakout(props);
-        game.mount(container);
+        game.init();
         gameRef.current = game;
 
         return () => {
@@ -28,9 +28,11 @@ export default function GameComponent(props: BreakoutProps) {
     }, []); // intentionally empty: the game owns its own lifecycle
 
     // Forward prop changes to the running game
-    // useEffect(() => {
-    //     gameRef.current?.setStore(props.store);
-    // }, [props.store]);
+    useEffect(() => {
+        if (props.store) {
+            gameRef.current?.setStore(props.store);
+        }
+    }, [props.store]);
 
-    return <div ref={containerRef} />;
+    return <canvas id="breakout" ref={containerRef} />;
 }

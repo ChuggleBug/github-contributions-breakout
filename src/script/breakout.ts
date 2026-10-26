@@ -28,9 +28,7 @@ import {
     rangeSelect,
 } from "../script/properties/defaults";
 import { Block } from "../script/model/block";
-import { GameWindow } from "../script/game/core";
-
-type BreakoutStore = {};
+import { GameWindow } from "../script/view/core";
 
 export interface BreakoutOptions {
     height: number;
@@ -42,10 +40,18 @@ export interface BreakoutOptions {
     customPalette?: ColorPalette;
 }
 
+export type BreakoutStore = {
+    score: number;
+    setScore: (score: number) => void;
+    state: State;
+    setState: (state: State) => void;
+};
+
 export class Breakout {
     readonly canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private rafId = 0;
+    // @ts-ignore
     private running = false;
     private abort = new AbortController(); // for event listeners
     private resizeObserver?: ResizeObserver;
@@ -53,23 +59,32 @@ export class Breakout {
     private height: number;
     private width: number;
     private startingBlocks: BlockGrid;
-    private store: BreakoutStore;
+    private store?: BreakoutStore | null;
     private properties: BreakoutProperties;
     private palette: BreakoutColorPalatte;
     private customPalette: ColorPalette | null;
+
+    // Internal state from BreakoutState
+    private state: State = DEFAULT_STATE;
 
     constructor(opts: BreakoutOptions) {
         this.height = opts.height;
         this.width = opts.width;
         this.startingBlocks = opts.startingBlocks;
-        this.store = opts.store;
+        this.store = opts.store ?? null;
         this.properties = opts.properties ?? DEFAULTS;
         this.palette = opts.palette ?? "default";
         this.customPalette = opts.customPalette ?? null;
 
         // Canvas configurations
-        this.canvas = document.createElement("canvas");
-        this.canvas.id = "breakout";
+        const element = document.getElementById("breakout");
+        if (!element) {
+            throw new Error('Missing HTML element canvas "breakout"');
+        }
+        if (!(element instanceof HTMLCanvasElement)) {
+            throw new Error('HTML element "breakout" is not a canvas');
+        }
+        this.canvas = element as HTMLCanvasElement;
         this.canvas.className = "breakout";
         this.canvas.tabIndex = 0;
         this.canvas.style.width = `${this.width}px`;
@@ -83,13 +98,23 @@ export class Breakout {
         this.ctx = ctx;
     }
 
-    mount(parent: HTMLElement) {
-        parent.appendChild(this.canvas);
-        this.init();
+    setStore(store: BreakoutStore) {
+        this.store = store;
+    }
+
+    private setState(s: State) {
+        this.state = s;
+        if (this.store) {
+            this.store.setState(s);
+        }
+    }
+
+    init() {
+        this.initialize();
         this.start();
     }
 
-    private init() {
+    private initialize() {
         const game = new GameWindow();
         const gameWidth =
             (game.mainView.horizontal.end - game.mainView.horizontal.start) *
@@ -245,7 +270,6 @@ export class Breakout {
         let frameCount = 0;
         let score = 0;
         let lastReportedScore = -1;
-        let state: State = DEFAULT_STATE;
 
         // Load keyboard events
         const keySet = new Set<string>();
@@ -289,12 +313,12 @@ export class Breakout {
             this.canvas.focus();
         };
         const handleBlur = () => {
-            state = "pause";
+            this.setState("pause");
             keySet.clear();
         };
         const handleFocus = () => {
-            if (state !== "end") {
-                state = "play";
+            if (this.state !== "end") {
+                this.setState("play");
             }
         };
 
@@ -400,7 +424,7 @@ export class Breakout {
             }
             // Game end check
             if (model.blockMatrix.length <= 0) {
-                state = "end";
+                this.setState("end");
             }
         };
 
@@ -416,7 +440,7 @@ export class Breakout {
             let deltaTime = (time - lastTime) / 1000;
             lastTime = time;
             deltaTime = Math.min(deltaTime, CONSTANTS.GAME_MAX_DELTA_TIME);
-            if (state === "end") {
+            if (this.state === "end") {
                 this.ctx.filter = "brightness(50%)";
                 drawGame();
                 this.ctx.filter = "none";
@@ -431,7 +455,7 @@ export class Breakout {
                 );
                 return;
             }
-            if (state === "pause") {
+            if (this.state === "pause") {
                 this.ctx.filter = "brightness(50%)";
                 drawGame();
                 this.ctx.filter = "none";
@@ -444,12 +468,12 @@ export class Breakout {
                     gameTransform.X(0.5),
                     gameTransform.Y(0.5),
                 );
-            } else if (state === "start") {
+            } else if (this.state === "start") {
                 // Only draw all the elements
                 this.ctx.filter = "brightness(50%)";
                 drawGame();
                 this.ctx.filter = "none";
-            } else if (state === "play") {
+            } else if (this.state === "play") {
                 playTime += deltaTime;
 
                 // Move and out of bounds check
@@ -507,8 +531,7 @@ export class Breakout {
     destroy() {
         this.running = false;
         cancelAnimationFrame(this.rafId);
-        this.abort.abort(); // removes all listeners added with { signal }
+        this.abort.abort();
         this.resizeObserver?.disconnect();
-        this.canvas.remove();
     }
 }
