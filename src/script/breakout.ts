@@ -10,11 +10,7 @@ import type {
     Direction,
     AxesModelTransform,
 } from "../script/model/types";
-import {
-    defaultAxesTransform,
-    ObjectSet,
-    type BreakoutModel,
-} from "../script/model/core";
+import { ObjectSet, type BreakoutModel } from "../script/model/core";
 import {
     paletteFactory,
     type BreakoutColorPalatte,
@@ -80,7 +76,7 @@ export class Breakout {
     // Internal State
     private keySet: Set<string>;
     private controls: Required<GameControlProperties>;
-    private transformations: Record<ViewName, AxesModelTransform>;
+    private transformations: Record<ViewName, AxesModelTransform | null>;
 
     constructor(opts: BreakoutOptions) {
         this.height = opts.height;
@@ -121,8 +117,8 @@ export class Breakout {
         this.blockDownStepsCountdown = 0;
         this.colors = paletteFactory(this.palette, this.customPalette);
         this.transformations = {
-            game: defaultAxesTransform(),
-            sidebar: defaultAxesTransform(),
+            game: null,
+            sidebar: null,
         };
     }
 
@@ -188,7 +184,12 @@ export class Breakout {
             return { X: modelToX, Y: modelToY };
         };
 
+        // Make view transformations
         this.transformations["game"] = makeTransform(game.mainViewID);
+        if (this.startingBlocks.blockRowIndicator) {
+            const sidebarID = game.splitView(game.mainViewID, 0.9, "vertical");
+            this.transformations.sidebar = makeTransform(sidebarID);
+        }
 
         const makeBall = () => {
             // BallStartState.angleDeg can be either a
@@ -361,11 +362,11 @@ export class Breakout {
                 this.ctx.fillStyle = "#fff";
                 this.ctx.textAlign = "center";
                 this.ctx.textBaseline = "middle";
-                this.ctx.font = `${this.transformations.game.Y(0.1)}px monospace`;
+                this.ctx.font = `${this.transformations.game!.Y(0.1)}px monospace`;
                 this.ctx.fillText(
                     "Game End",
-                    this.transformations.game.X(0.5),
-                    this.transformations.game.Y(0.5),
+                    this.transformations.game!.X(0.5),
+                    this.transformations.game!.Y(0.5),
                 );
                 return;
             }
@@ -375,11 +376,11 @@ export class Breakout {
                 this.ctx.fillStyle = "#fff";
                 this.ctx.textAlign = "center";
                 this.ctx.textBaseline = "middle";
-                this.ctx.font = `${this.transformations.game.Y(0.1)}px monospace`;
+                this.ctx.font = `${this.transformations.game!.Y(0.1)}px monospace`;
                 this.ctx.fillText(
                     "Paused",
-                    this.transformations.game.X(0.5),
-                    this.transformations.game.Y(0.5),
+                    this.transformations.game!.X(0.5),
+                    this.transformations.game!.Y(0.5),
                 );
             } else if (this.state === "start") {
                 // Only draw all the elements
@@ -557,23 +558,23 @@ export class Breakout {
     drawGame() {
         this.ctx.fillStyle = this.colors.background;
         this.ctx.fillRect(
-            this.transformations.game.X(0),
-            this.transformations.game.Y(0),
-            this.transformations.game.X(1),
-            this.transformations.game.Y(1),
+            this.transformations.game!.X(0),
+            this.transformations.game!.Y(0),
+            this.transformations.game!.X(1),
+            this.transformations.game!.Y(1),
         );
         objects.all.forEach((e) => {
-            e.draw(this.ctx, this.transformations.game);
+            e.draw(this.ctx, this.transformations.game!);
         });
 
         // Draw Borders
         this.ctx.strokeStyle = "white";
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(
-            this.transformations.game.X(0),
-            this.transformations.game.Y(0),
-            this.transformations.game.X(1),
-            this.transformations.game.Y(1),
+            this.transformations.game!.X(0),
+            this.transformations.game!.Y(0),
+            this.transformations.game!.X(1),
+            this.transformations.game!.Y(1),
         );
         this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
     }
