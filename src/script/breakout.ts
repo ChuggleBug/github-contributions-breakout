@@ -348,7 +348,6 @@ export class Breakout {
         let lastTime: number | null = null;
         let playTime: number = 0;
 
-        this.filterBlocks();
         const render = (time: number) => {
             console.log(
                 "Blocks: ",
