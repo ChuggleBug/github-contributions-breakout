@@ -1,25 +1,25 @@
 import "./breakout.css";
 import { useEffect, useRef } from "react";
 import { type BreakoutStore } from "./useBreakoutStore";
-import { Paddle } from "./model/paddle";
-import { Ball } from "./model/ball";
+import { Paddle } from "../script/model/paddle";
+import { Ball } from "../script/model/ball";
 import type {
     BreakoutProperties,
     BlockGrid,
     GameControlProperties,
-} from "./properties/types";
-import type { State, Direction, AxesModelTransform } from "./model/types";
-import { ObjectSet, type BreakoutModel, type ModelElement } from "./model/core";
+} from "../script/properties/types";
+import type { State, Direction, AxesModelTransform } from "../script/model/types";
+import { ObjectSet, type BreakoutModel, type ModelElement } from "../script/model/core";
 import {
     paletteFactory,
     type BreakoutColorPalatte,
     type ColorPalette,
-} from "./palettes/types";
-import * as CONSTANTS from "./constants";
+} from "../script/palettes/types";
+import * as CONSTANTS from "../script/constants";
 
-import { DEFAULT_STATE, DEFAULTS, rangeSelect } from "./properties/defaults";
-import { Block } from ".//model/block";
-import { GameWindow } from "./game/core";
+import { DEFAULT_STATE, DEFAULTS, rangeSelect } from "../script/properties/defaults";
+import { Block } from "../script/model/block";
+import { GameWindow } from "../script/game/core";
 
 export type BreakoutProps = {
     height: number;

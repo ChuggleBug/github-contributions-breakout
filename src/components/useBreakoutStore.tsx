@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { State } from "./model/core";
-import { DEFAULT_STATE } from "./properties/defaults";
+import type { State } from "../script/model/core";
+import { DEFAULT_STATE } from "../script/properties/defaults";
 
 export type BreakoutStore = {
     score: number;

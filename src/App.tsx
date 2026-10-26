@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import useBreakoutStore, {
     type BreakoutStore,
 } from "./components/useBreakoutStore";
-import type { BlockGrid } from "./components/types/properties";
+import type { BlockGrid } from "./script/properties/types";
 
 function App() {
     const store: BreakoutStore = useBreakoutStore();
@@ -45,7 +45,7 @@ function App() {
                 width={500}
                 store={store}
                 startingBlocks={blocks}
-                palette="random"
+                // palette="random"
             />
             <div>Score: {store.score}</div>
             <div>Time: {seconds}</div>
