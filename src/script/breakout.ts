@@ -11,9 +11,9 @@ import type {
     AxesModelTransform,
 } from "../script/model/types";
 import {
+    defaultAxesTransform,
     ObjectSet,
     type BreakoutModel,
-    type ModelElement,
 } from "../script/model/core";
 import {
     paletteFactory,
@@ -51,7 +51,8 @@ let model: BreakoutModel;
 let loadedBlocks: Block[][];
 let blockQueue: Block[][];
 let objects: ObjectSet;
-let gameTransform: AxesModelTransform;
+
+type ViewName = "game" | "sidebar";
 
 export class Breakout {
     readonly canvas: HTMLCanvasElement;
@@ -79,6 +80,7 @@ export class Breakout {
     // Internal State
     private keySet: Set<string>;
     private controls: Required<GameControlProperties>;
+    private transformations: Record<ViewName, AxesModelTransform>;
 
     constructor(opts: BreakoutOptions) {
         this.height = opts.height;
@@ -118,6 +120,10 @@ export class Breakout {
         };
         this.blockDownStepsCountdown = 0;
         this.colors = paletteFactory(this.palette, this.customPalette);
+        this.transformations = {
+            game: defaultAxesTransform(),
+            sidebar: defaultAxesTransform(),
+        };
     }
 
     setStore(store: BreakoutStore) {
@@ -182,7 +188,7 @@ export class Breakout {
             return { X: modelToX, Y: modelToY };
         };
 
-        gameTransform = makeTransform(game.mainViewID);
+        this.transformations["game"] = makeTransform(game.mainViewID);
 
         const makeBall = () => {
             // BallStartState.angleDeg can be either a
@@ -355,11 +361,11 @@ export class Breakout {
                 this.ctx.fillStyle = "#fff";
                 this.ctx.textAlign = "center";
                 this.ctx.textBaseline = "middle";
-                this.ctx.font = `${gameTransform.Y(0.1)}px monospace`;
+                this.ctx.font = `${this.transformations.game.Y(0.1)}px monospace`;
                 this.ctx.fillText(
                     "Game End",
-                    gameTransform.X(0.5),
-                    gameTransform.Y(0.5),
+                    this.transformations.game.X(0.5),
+                    this.transformations.game.Y(0.5),
                 );
                 return;
             }
@@ -369,11 +375,11 @@ export class Breakout {
                 this.ctx.fillStyle = "#fff";
                 this.ctx.textAlign = "center";
                 this.ctx.textBaseline = "middle";
-                this.ctx.font = `${gameTransform.Y(0.1)}px monospace`;
+                this.ctx.font = `${this.transformations.game.Y(0.1)}px monospace`;
                 this.ctx.fillText(
                     "Paused",
-                    gameTransform.X(0.5),
-                    gameTransform.Y(0.5),
+                    this.transformations.game.X(0.5),
+                    this.transformations.game.Y(0.5),
                 );
             } else if (this.state === "start") {
                 // Only draw all the elements
@@ -551,23 +557,23 @@ export class Breakout {
     drawGame() {
         this.ctx.fillStyle = this.colors.background;
         this.ctx.fillRect(
-            gameTransform.X(0),
-            gameTransform.Y(0),
-            gameTransform.X(1),
-            gameTransform.Y(1),
+            this.transformations.game.X(0),
+            this.transformations.game.Y(0),
+            this.transformations.game.X(1),
+            this.transformations.game.Y(1),
         );
         objects.all.forEach((e) => {
-            e.draw(this.ctx, gameTransform);
+            e.draw(this.ctx, this.transformations.game);
         });
 
         // Draw Borders
         this.ctx.strokeStyle = "white";
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(
-            gameTransform.X(0),
-            gameTransform.Y(0),
-            gameTransform.X(1),
-            gameTransform.Y(1),
+            this.transformations.game.X(0),
+            this.transformations.game.Y(0),
+            this.transformations.game.X(1),
+            this.transformations.game.Y(1),
         );
         this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
     }

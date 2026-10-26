@@ -4,6 +4,17 @@ import type { Ball } from "./ball";
 import type { ModelElementStruct } from "./types";
 import type { AxesModelTransform, BoundingBox, WallHit } from "./types";
 
+export function defaultAxesTransform(): AxesModelTransform {
+    return {
+        X: (_: number) => {
+            throw new Error("Missing X axis transformation");
+        },
+        Y: (_: number) => {
+            throw new Error("Missing Y axis transformation");
+        },
+    };
+}
+
 export class ObjectSet {
     private objects: Record<number, Set<ModelElement>>;
 
