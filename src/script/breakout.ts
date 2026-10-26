@@ -41,8 +41,8 @@ export interface BreakoutOptions {
 }
 
 export type BreakoutStore = {
-    score: number;
-    setScore: (score: number) => void;
+    secondsElapsed: number;
+    setSecondsElapsed: (score: number) => void;
     state: State;
     setState: (state: State) => void;
 };
@@ -66,7 +66,7 @@ export class Breakout {
 
     // Internal state from BreakoutState
     private state: State = DEFAULT_STATE;
-    private score: number = 0;
+    private seconds: number = 0;
 
     constructor(opts: BreakoutOptions) {
         this.height = opts.height;
@@ -110,10 +110,10 @@ export class Breakout {
         }
     }
 
-    private setScore(s: number) {
-        this.score = s;
+    private setSeconds(s: number) {
+        this.seconds = s;
         if (this.store) {
-            this.store?.setScore(s);
+            this.store?.setSecondsElapsed(s);
         }
     }
 
@@ -521,9 +521,9 @@ export class Breakout {
                 drawGame();
 
                 // TOOD: Modify this
-                this.setScore(Math.floor(playTime));
-                if (this.score !== lastReportedScore) {
-                    lastReportedScore = this.score;
+                this.setSeconds(Math.floor(playTime));
+                if (this.seconds !== lastReportedScore) {
+                    lastReportedScore = this.seconds;
                 }
             }
 

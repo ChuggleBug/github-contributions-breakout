@@ -1,6 +1,6 @@
 import "./App.css";
 import Breakout from "./components/Breakout";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useReducer, useRef } from "react";
 import { useBreakoutStore } from "./components/useBreakoutStore";
 import { type BreakoutStore } from "./script/breakout";
 import type { BlockGrid } from "./script/properties/types";
@@ -48,40 +48,8 @@ function App() {
 
         return () => clearInterval(id);
     }, []);
-
-    // const range = (start: number, end: number) =>
-    //     Array.from({ length: end - start + 1 }, (_, i) => i + start);
-    // blocks = {
-    //     blocksPerRow: 7,
-    //     // blocks: range(1, 700).map((_n) => {
-    //     //     return { level: range(0, 4)[Math.floor(Math.random() * 4)] };
-    //     // }),
-    //     blocks: [
-    //         [0, 0, 0, 1, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 0, 0, 0, 0],
-    //         [0, 0, 0, 1, 0, 0, 0],
-    //         [0, 0, 0, 1, 0, 0, 0],
-    //     ]
-    //         .flat()
-    //         .map((n) => {
-    //             return {
-    //                 level: n,
-    //             };
-    //         }),
-    //     blockRowIndicator: (n: number) => `Row ${n}`,
-    // };
+    
+    const divRef = useRef<HTMLDivElement>(null);
 
     return (
         <div
@@ -94,15 +62,26 @@ function App() {
                 justifyContent: "center",
             }}
         >
-            <Breakout
-                height={750}
-                width={500}
-                store={store}
-                startingBlocks={blocks}
-            />
-            <div>Score: {store.score}</div>
-            <div>Time: {seconds}</div>
-            <div>{store.state}</div>
+            <div ref={divRef}>
+                <Breakout
+                    height={750}
+                    width={500}
+                    store={store}
+                    startingBlocks={blocks}
+                />
+            </div>
+            <div
+                style={{
+                    width: `${divRef.current?.clientWidth ?? 200}px`,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "start",
+                    alignItems: "start",
+                }}
+            >
+                <div>Time (Game): {store.secondsElapsed}</div>
+                <div>Time: {seconds}</div>
+            </div>
         </div>
     );
 }

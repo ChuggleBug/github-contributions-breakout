@@ -8,8 +8,8 @@ export function useBreakoutStore(): BreakoutStore {
     const [state, setState] = useState<State>(DEFAULT_STATE);
 
     return {
-        score,
-        setScore,
+        secondsElapsed: score,
+        setSecondsElapsed: setScore,
         state,
         setState,
     };
