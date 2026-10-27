@@ -1,1 +1,0 @@
-Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require("./breakout-BlTqwEbT.cjs");exports.BreakoutGame=e.t,exports.GITHUB_DARK_PALETTE=e.o,exports.GITHUB_LIGHT_PALETTE=e.i,exports.RANDOM_PALATTE=e.a,exports.paletteFactory=e.r;
