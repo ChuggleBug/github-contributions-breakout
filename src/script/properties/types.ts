@@ -8,6 +8,7 @@ export type BlockGrid = {
     // Given a row from 0-n, return the rows "name"
     // Example Row 0 can return "Row 1"
     blockRowIndicator?: (rowNum: number) => string;
+    blockRowIndicatorWidthHint?: number;
 };
 
 export type PaddleStartState = {

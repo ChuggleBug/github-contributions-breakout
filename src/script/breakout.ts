@@ -73,6 +73,7 @@ export class Breakout {
     private controls: Required<GameControlProperties>;
     private transformations: Record<ViewName, AxesModelTransform | null>;
     private model: BreakoutModel;
+    private clearedRows: number;
 
     constructor(opts: BreakoutOptions) {
         this.height = opts.height;
@@ -117,6 +118,7 @@ export class Breakout {
             game: null,
             sidebar: null,
         };
+        this.clearedRows = 0;
         this.model = this.makeBreakoutModel();
     }
 
@@ -201,15 +203,16 @@ export class Breakout {
             let deltaTime = (time - lastTime) / 1000;
             lastTime = time;
             deltaTime = Math.min(deltaTime, CONSTANTS.GAME_MAX_DELTA_TIME);
+            this.clearScreen();
             switch (this.state) {
                 case "end": {
                     this.drawGame("blur(6px)");
-                    this.writeScreenText("Game End");
+                    this.writeText("Game End", { rem: 10 });
                     return;
                 }
                 case "pause": {
                     this.drawGame("blur(6px)");
-                    this.writeScreenText("Paused");
+                    this.writeText("Paused", { rem: 10 });
                     break;
                 }
                 case "start": {
@@ -231,6 +234,7 @@ export class Breakout {
                     throw new Error(`Invalid game state: ${this.state}`);
                 }
             }
+            this.drawBorders();
 
             frameCount++;
             this.rafId = window.requestAnimationFrame(render);
@@ -277,46 +281,113 @@ export class Breakout {
         }
     }
 
-    drawGame(ctxFilter: string = "none") {
-        this.ctx.fillStyle = this.colors.background;
+    clearScreen() {
+        const transform = this.transformations.screen;
+        this.ctx.clearRect(
+            transform!.X(0),
+            transform!.Y(0),
+            transform!.X(1),
+            transform!.Y(1),
+        );
+    }
 
-        // Clear
+    drawGame(ctxFilter: string = "none") {
+        const transform = this.transformations.game;
+
+        this.ctx.fillStyle = this.colors.background;
         this.ctx.fillRect(
-            this.transformations.game!.X(0),
-            this.transformations.game!.Y(0),
-            this.transformations.game!.X(1),
-            this.transformations.game!.Y(1),
+            transform!.X(0),
+            transform!.Y(0),
+            transform!.X(1),
+            transform!.Y(1),
         );
 
         this.model.objects.all.forEach((e) => {
             this.ctx.filter = ctxFilter;
             e.draw(this.ctx, this.transformations.game!);
         });
-        this.ctx.filter = ctxFilter;
 
-        // Draw Borders
+        // Will exit early if not present
+        this.drawSidebar();
+        this.ctx.filter = "none";
+    }
+
+    drawBorders() {
         this.ctx.filter = "none";
         this.ctx.strokeStyle = "white";
         this.ctx.lineWidth = 2;
+        // Draw Borders
+        let transform = this.transformations.game;
         this.ctx.strokeRect(
-            this.transformations.game!.X(0),
-            this.transformations.game!.Y(0),
-            this.transformations.game!.X(1),
-            this.transformations.game!.Y(1),
+            transform!.X(0),
+            transform!.Y(0),
+            transform!.X(1),
+            transform!.Y(1),
         );
-        this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
+        transform = this.transformations.screen;
+        this.ctx.strokeRect(
+            transform!.X(0),
+            transform!.Y(0),
+            transform!.X(1),
+            transform!.Y(1),
+        );
     }
 
-    writeScreenText(text: string) {
+    drawSidebar() {
+        if (!this.startingBlocks.blockRowIndicator) {
+            return;
+        }
+
+        const transform = this.transformations.sidebar;
+        this.ctx.fillStyle = this.colors.background;
+        this.ctx.fillRect(
+            transform!.X(0),
+            transform!.Y(0),
+            transform!.X(1),
+            transform!.Y(1),
+        );
+
+        const sidebarWidth = transform!.X(1) - transform!.X(0);
+        const rem =
+            sidebarWidth /
+            CONSTANTS.GAME_ROOT_FONT_SIZE_PX /
+            (this.startingBlocks.blockRowIndicatorWidthHint ?? 1);
+        this.model.activeBlocks.forEach((row, i) => {
+            const Y = row[0].Y + row[0].height / 2;
+            this.writeText(
+                this.startingBlocks.blockRowIndicator!(this.clearedRows + i),
+                {
+                    view: "sidebar",
+                    X: 0.5,
+                    Y,
+                    rem,
+                },
+            );
+        });
+        this.ctx.filter = "none";
+    }
+
+    writeText(
+        text: string,
+        {
+            view = "screen",
+            X = 0.5,
+            Y = 0.5,
+            rem = 1,
+        }: {
+            view?: ViewName;
+            X?: number;
+            Y?: number;
+            rem?: number;
+        } = {},
+    ) {
+        const transform = this.transformations[view];
+
         this.ctx.fillStyle = "#fff";
         this.ctx.textAlign = "center";
         this.ctx.textBaseline = "middle";
-        this.ctx.font = `${this.transformations.screen!.Y(0.1)}px monospace`;
-        this.ctx.fillText(
-            text,
-            this.transformations.screen!.X(0.5),
-            this.transformations.screen!.Y(0.5),
-        );
+        this.ctx.font = `${Math.floor(rem * CONSTANTS.GAME_ROOT_FONT_SIZE_PX)}px monospace`;
+        this.ctx.fillText(text, transform!.X(X), transform!.Y(Y));
     }
 
     private makeBreakoutModel() {
@@ -362,7 +433,7 @@ export class Breakout {
         this.transformations["screen"] = makeTransform(game.screenView);
         this.transformations["game"] = makeTransform(game.mainViewID);
         if (this.startingBlocks.blockRowIndicator) {
-            const sidebarID = game.splitView(game.mainViewID, 0.9, "vertical");
+            const sidebarID = game.splitView(game.mainViewID, 0.8, "vertical");
             this.transformations.sidebar = makeTransform(sidebarID);
         }
 
@@ -561,6 +632,7 @@ export class Breakout {
         }
 
         if (sliceTo > 0) {
+            this.clearedRows += sliceTo;
             this.blockDownStepsCountdown +=
                 CONSTANTS.GAME_BLOCK_DOWN_STEPS * sliceTo;
 

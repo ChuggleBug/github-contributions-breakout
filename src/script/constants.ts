@@ -12,3 +12,5 @@ export const GAME_BLOCK_DOWN_STEPS = 20;
 
 export const GAME_BALL_RESPAWN_TIME_MS = 500;
 export const GAME_BALL_SPEED_UP_FACTOR = 3;
+
+export const GAME_ROOT_FONT_SIZE_PX = 16;
