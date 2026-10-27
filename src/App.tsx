@@ -40,24 +40,6 @@ function App() {
                           ) ?? 0), // filler for gaps
             };
         }),
-        blockRowIndicator: (n: number) => {
-            const start = new Date(thisSunday - n * 7 * DAY); // Sunday of this row
-            const end = new Date(start.getTime() + 6 * DAY); // Saturday of this row
-
-            // The row contains the 1st of a month iff its Saturday falls on day 1-7
-            const monthStarts = end.getUTCDate() <= 7;
-            if (n !== 0 && !monthStarts) {
-                return "";
-            }
-
-            const month = end.toLocaleString("en-US", {
-                month: "short",
-                timeZone: "UTC",
-            });
-
-            return `${month}`;
-        },
-        blockRowIndicatorWidthHint: 3,
     };
 
     useEffect(() => {
@@ -87,6 +69,30 @@ function App() {
                     width={500}
                     store={store}
                     startingBlocks={blocks}
+                    properties={{
+                        sidebar: {
+                            blockRowIndicator: (n: number) => {
+                                const start = new Date(
+                                    thisSunday - n * 7 * DAY,
+                                ); // Sunday of this row
+                                const end = new Date(start.getTime() + 6 * DAY); // Saturday of this row
+
+                                // The row contains the 1st of a month iff its Saturday falls on day 1-7
+                                const monthStarts = end.getUTCDate() <= 7;
+                                if (n !== 0 && !monthStarts) {
+                                    return "";
+                                }
+
+                                const month = end.toLocaleString("en-US", {
+                                    month: "short",
+                                    timeZone: "UTC",
+                                });
+
+                                return `${month}`;
+                            },
+                            blockRowIndicatorWidthHint: 3,
+                        },
+                    }}
                 />
             </div>
             <div

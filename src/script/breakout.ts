@@ -334,7 +334,7 @@ export class Breakout {
     }
 
     drawSidebar() {
-        if (!this.startingBlocks.blockRowIndicator) {
+        if (!this.properties.sidebar?.blockRowIndicator) {
             return;
         }
 
@@ -347,15 +347,19 @@ export class Breakout {
             transform!.Y(1),
         );
 
+        // Guess the width of the sidebar, given the text hint
         const sidebarWidth = transform!.X(1) - transform!.X(0);
         const rem =
             sidebarWidth /
             CONSTANTS.GAME_ROOT_FONT_SIZE_PX /
-            (this.startingBlocks.blockRowIndicatorWidthHint ?? 1);
-        this.model.activeBlocks.forEach((row, i) => {
+            (this.properties.sidebar.blockRowIndicatorWidthHint ?? 1);
+
+        for (let i = 0; i < this.model.activeBlocks.length; i += 1) {
+            const row = this.model.activeBlocks[i];
+
             const Y = row[0].Y + row[0].height / 2;
             this.writeText(
-                this.startingBlocks.blockRowIndicator!(this.clearedRows + i),
+                this.properties.sidebar.blockRowIndicator(this.clearedRows + i),
                 {
                     view: "sidebar",
                     X: 0.5,
@@ -363,7 +367,7 @@ export class Breakout {
                     rem,
                 },
             );
-        });
+        }
         this.ctx.filter = "none";
     }
 
@@ -416,7 +420,7 @@ export class Breakout {
         // Make view transformation functions
         this.transformations["screen"] = makeTransform(game.screenView);
         this.transformations["game"] = makeTransform(game.mainViewID);
-        if (this.startingBlocks.blockRowIndicator) {
+        if (this.properties.sidebar?.blockRowIndicator) {
             const sidebarID = game.splitView(game.mainViewID, 0.8, "vertical");
             this.transformations.sidebar = makeTransform(sidebarID);
         }

@@ -5,10 +5,6 @@ export type BlockData = {
 export type BlockGrid = {
     blocksPerRow: number;
     blocks: BlockData[];
-    // Given a row from 0-n, return the rows "name"
-    // Example Row 0 can return "Row 1"
-    blockRowIndicator?: (rowNum: number) => string;
-    blockRowIndicatorWidthHint?: number;
 };
 
 export type PaddleStartState = {
@@ -54,9 +50,22 @@ export type GameControlProperties = {
     speedupKeys?: ReadonlyArray<string>;
 };
 
+export type SidebarDisplayProperties =
+    | {
+          // Given a row from 0-n, return the rows "name"
+          // Example Row 0 can return "Row 1"
+          blockRowIndicator?: undefined;
+          blockRowIndicatorWidthHint?: undefined;
+      }
+    | {
+          blockRowIndicator: (rowNum: number) => string;
+          blockRowIndicatorWidthHint?: number;
+      };
+
 export type BreakoutProperties = {
     paddle?: PaddleStartState;
     ball?: BallStartState;
     blocks?: BlockGridProperties;
     controls?: GameControlProperties;
+    sidebar?: SidebarDisplayProperties;
 };
