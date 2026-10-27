@@ -142,6 +142,159 @@ export class Breakout {
         this.start();
     }
 
+    private initialize() {
+        const { signal } = this.abort;
+        this.canvas.addEventListener(
+            "keydown",
+            (e: KeyboardEvent) => this.handleKeyDown(e),
+            {
+                signal,
+            },
+        );
+        this.canvas.addEventListener(
+            "keyup",
+            (e: KeyboardEvent) => this.handleKeyUp(e),
+            {
+                signal,
+            },
+        );
+        this.canvas.addEventListener(
+            "pointerdown",
+            (_: PointerEvent) => this.handlePointerDown(),
+            {
+                signal,
+            },
+        );
+        this.canvas.addEventListener(
+            "blur",
+            (_: FocusEvent) => this.handleBlur(),
+            { signal },
+        );
+        this.canvas.addEventListener(
+            "focus",
+            (_: FocusEvent) => this.handleFocus(),
+            {
+                signal,
+            },
+        );
+        window.addEventListener("resize", (_: UIEvent) => this.handleResize(), {
+            signal,
+        });
+    }
+
+    private start() {
+        let frameCount = 0;
+        let lastReportedScore = -1;
+
+        let lastTime: number | null = null;
+        let playTime: number = 0;
+
+        const render = (time: number) => {
+            console.log(
+                "Blocks: ",
+                this.model.objects.all.filter((e) => e instanceof Block).length,
+            );
+            if (lastTime === null) {
+                lastTime = time;
+            }
+            let deltaTime = (time - lastTime) / 1000;
+            lastTime = time;
+            deltaTime = Math.min(deltaTime, CONSTANTS.GAME_MAX_DELTA_TIME);
+            switch (this.state) {
+                case "end": {
+                    this.drawGame();
+                    this.ctx.filter = "none";
+                    this.ctx.fillStyle = "#fff";
+                    this.ctx.textAlign = "center";
+                    this.ctx.textBaseline = "middle";
+                    this.ctx.font = `${this.transformations.game!.Y(0.1)}px monospace`;
+                    this.ctx.fillText(
+                        "Game End",
+                        this.transformations.game!.X(0.5),
+                        this.transformations.game!.Y(0.5),
+                    );
+                    return;
+                }
+                case "pause": {
+                    this.drawGame();
+                    this.ctx.filter = "none";
+                    this.ctx.fillStyle = "#fff";
+                    this.ctx.textAlign = "center";
+                    this.ctx.textBaseline = "middle";
+                    this.ctx.font = `${this.transformations.game!.Y(0.1)}px monospace`;
+                    this.ctx.fillText(
+                        "Paused",
+                        this.transformations.game!.X(0.5),
+                        this.transformations.game!.Y(0.5),
+                    );
+                    break;
+                }
+                case "start": {
+                    // Only draw all the elements
+                    this.drawGame();
+                    this.ctx.filter = "none";
+                    break;
+                }
+                case "play": {
+                    playTime += deltaTime;
+
+                    // Move and out of bounds check
+                    this.model.paddle.direction = this.getDirection();
+                    this.model.objects.all.forEach((e) => e.move(deltaTime));
+                    this.model.objects.all.forEach((e) => e.checkBounds());
+
+                    // Block Steps
+                    if (this.blockDownStepsCountdown > 0) {
+                        this.blockDownStepsCountdown -= 1;
+                        if (this.blockDownStepsCountdown === 0) {
+                            this.model.activeBlocks
+                                .flat()
+                                .forEach((b) => (b.canMove = false));
+                        }
+                    }
+
+                    // Collisions
+                    for (const obj of this.model.objects.all) {
+                        if (this.model.ball.collides(obj)) {
+                            this.model.ball.handleCollision(obj);
+                        }
+                    }
+                    this.filterBlocks();
+
+                    // Ball Deletion, and respawn logic
+                    if (
+                        this.model.objects.has(this.model.ball) &&
+                        this.model.ball.boundHits.bottom
+                    ) {
+                        this.model.objects.delete(this.model.ball);
+                        this.model.ball = this.model.ballCreate();
+                        this.model.objects.add(this.model.ball);
+                        this.model.ball.canMove = false;
+                        setTimeout(() => {
+                            this.model.ball.canMove = true;
+                        }, CONSTANTS.GAME_BALL_RESPAWN_TIME_MS);
+                    }
+
+                    // Drawing
+                    this.drawGame();
+
+                    this.setSeconds(Math.floor(playTime));
+                    if (this.seconds !== lastReportedScore) {
+                        lastReportedScore = this.seconds;
+                    }
+                    break;
+                }
+                default: {
+                    throw new Error(`Invalid game state: ${this.state}`);
+                }
+            }
+
+            frameCount++;
+            this.rafId = window.requestAnimationFrame(render);
+        };
+        this.rafId = window.requestAnimationFrame(render);
+    }
+
     private makeBreakoutModel() {
         const game = new GameWindow();
         const gameWidth =
@@ -298,163 +451,6 @@ export class Breakout {
 
         return gameModel;
     }
-
-    private initialize() {
-        this.makeBreakoutModel();
-
-        let frameCount = 0;
-        let lastReportedScore = -1;
-
-        // Events
-        const { signal } = this.abort;
-        this.canvas.addEventListener(
-            "keydown",
-            (e: KeyboardEvent) => this.handleKeyDown(e),
-            {
-                signal,
-            },
-        );
-        this.canvas.addEventListener(
-            "keyup",
-            (e: KeyboardEvent) => this.handleKeyUp(e),
-            {
-                signal,
-            },
-        );
-        this.canvas.addEventListener(
-            "pointerdown",
-            (_: PointerEvent) => this.handlePointerDown(),
-            {
-                signal,
-            },
-        );
-        this.canvas.addEventListener(
-            "blur",
-            (_: FocusEvent) => this.handleBlur(),
-            { signal },
-        );
-        this.canvas.addEventListener(
-            "focus",
-            (_: FocusEvent) => this.handleFocus(),
-            {
-                signal,
-            },
-        );
-        window.addEventListener("resize", (_: UIEvent) => this.handleResize(), {
-            signal,
-        });
-
-        // Time
-        let lastTime: number | null = null;
-        let playTime: number = 0;
-
-        const render = (time: number) => {
-            console.log(
-                "Blocks: ",
-                this.model.objects.all.filter((e) => e instanceof Block).length,
-            );
-            if (lastTime === null) {
-                lastTime = time;
-            }
-            let deltaTime = (time - lastTime) / 1000;
-            lastTime = time;
-            deltaTime = Math.min(deltaTime, CONSTANTS.GAME_MAX_DELTA_TIME);
-            switch (this.state) {
-                case "end": {
-                    this.drawGame();
-                    this.ctx.filter = "none";
-                    this.ctx.fillStyle = "#fff";
-                    this.ctx.textAlign = "center";
-                    this.ctx.textBaseline = "middle";
-                    this.ctx.font = `${this.transformations.game!.Y(0.1)}px monospace`;
-                    this.ctx.fillText(
-                        "Game End",
-                        this.transformations.game!.X(0.5),
-                        this.transformations.game!.Y(0.5),
-                    );
-                    return;
-                }
-                case "pause": {
-                    this.drawGame();
-                    this.ctx.filter = "none";
-                    this.ctx.fillStyle = "#fff";
-                    this.ctx.textAlign = "center";
-                    this.ctx.textBaseline = "middle";
-                    this.ctx.font = `${this.transformations.game!.Y(0.1)}px monospace`;
-                    this.ctx.fillText(
-                        "Paused",
-                        this.transformations.game!.X(0.5),
-                        this.transformations.game!.Y(0.5),
-                    );
-                    break;
-                }
-                case "start": {
-                    // Only draw all the elements
-                    this.drawGame();
-                    this.ctx.filter = "none";
-                    break;
-                }
-                case "play": {
-                    playTime += deltaTime;
-
-                    // Move and out of bounds check
-                    this.model.paddle.direction = this.getDirection();
-                    this.model.objects.all.forEach((e) => e.move(deltaTime));
-                    this.model.objects.all.forEach((e) => e.checkBounds());
-
-                    // Block Steps
-                    if (this.blockDownStepsCountdown > 0) {
-                        this.blockDownStepsCountdown -= 1;
-                        if (this.blockDownStepsCountdown === 0) {
-                            this.model.activeBlocks
-                                .flat()
-                                .forEach((b) => (b.canMove = false));
-                        }
-                    }
-
-                    // Collisions
-                    for (const obj of this.model.objects.all) {
-                        if (this.model.ball.collides(obj)) {
-                            this.model.ball.handleCollision(obj);
-                        }
-                    }
-                    this.filterBlocks();
-
-                    // Ball Deletion, and respawn logic
-                    if (
-                        this.model.objects.has(this.model.ball) &&
-                        this.model.ball.boundHits.bottom
-                    ) {
-                        this.model.objects.delete(this.model.ball);
-                        this.model.ball = this.model.ballCreate();
-                        this.model.objects.add(this.model.ball);
-                        this.model.ball.canMove = false;
-                        setTimeout(() => {
-                            this.model.ball.canMove = true;
-                        }, CONSTANTS.GAME_BALL_RESPAWN_TIME_MS);
-                    }
-
-                    // Drawing
-                    this.drawGame();
-
-                    this.setSeconds(Math.floor(playTime));
-                    if (this.seconds !== lastReportedScore) {
-                        lastReportedScore = this.seconds;
-                    }
-                    break;
-                }
-                default: {
-                    throw new Error(`Invalid game state: ${this.state}`);
-                }
-            }
-
-            frameCount++;
-            this.rafId = window.requestAnimationFrame(render);
-        };
-        this.rafId = window.requestAnimationFrame(render);
-    }
-
-    private start() {}
 
     handleKeyDown(e: KeyboardEvent) {
         type BallHiddenState = Ball & { _speedup: boolean };
