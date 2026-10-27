@@ -43,7 +43,7 @@ export type BreakoutStore = {
     setState: (state: State) => void;
 };
 
-type ViewName = "game" | "sidebar";
+type ViewName = "game" | "sidebar" | "screen";
 
 export class Breakout {
     readonly canvas: HTMLCanvasElement;
@@ -113,6 +113,7 @@ export class Breakout {
         this.blockDownStepsCountdown = 0;
         this.colors = paletteFactory(this.palette, this.customPalette);
         this.transformations = {
+            screen: null,
             game: null,
             sidebar: null,
         };
@@ -202,82 +203,24 @@ export class Breakout {
             deltaTime = Math.min(deltaTime, CONSTANTS.GAME_MAX_DELTA_TIME);
             switch (this.state) {
                 case "end": {
-                    this.drawGame();
-                    this.ctx.filter = "none";
-                    this.ctx.fillStyle = "#fff";
-                    this.ctx.textAlign = "center";
-                    this.ctx.textBaseline = "middle";
-                    this.ctx.font = `${this.transformations.game!.Y(0.1)}px monospace`;
-                    this.ctx.fillText(
-                        "Game End",
-                        this.transformations.game!.X(0.5),
-                        this.transformations.game!.Y(0.5),
-                    );
+                    this.drawGame("blur(6px)");
+                    this.writeScreenText("Game End");
                     return;
                 }
                 case "pause": {
-                    this.drawGame();
-                    this.ctx.filter = "none";
-                    this.ctx.fillStyle = "#fff";
-                    this.ctx.textAlign = "center";
-                    this.ctx.textBaseline = "middle";
-                    this.ctx.font = `${this.transformations.game!.Y(0.1)}px monospace`;
-                    this.ctx.fillText(
-                        "Paused",
-                        this.transformations.game!.X(0.5),
-                        this.transformations.game!.Y(0.5),
-                    );
+                    this.drawGame("blur(6px)");
+                    this.writeScreenText("Paused");
                     break;
                 }
                 case "start": {
                     // Only draw all the elements
-                    this.drawGame();
-                    this.ctx.filter = "none";
+                    this.drawGame("blur(6px)");
                     break;
                 }
                 case "play": {
                     playTime += deltaTime;
-
-                    // Move and out of bounds check
-                    this.model.paddle.direction = this.getDirection();
-                    this.model.objects.all.forEach((e) => e.move(deltaTime));
-                    this.model.objects.all.forEach((e) => e.checkBounds());
-
-                    // Block Steps
-                    if (this.blockDownStepsCountdown > 0) {
-                        this.blockDownStepsCountdown -= 1;
-                        if (this.blockDownStepsCountdown === 0) {
-                            this.model.activeBlocks
-                                .flat()
-                                .forEach((b) => (b.canMove = false));
-                        }
-                    }
-
-                    // Collisions
-                    for (const obj of this.model.objects.all) {
-                        if (this.model.ball.collides(obj)) {
-                            this.model.ball.handleCollision(obj);
-                        }
-                    }
-                    this.filterBlocks();
-
-                    // Ball Deletion, and respawn logic
-                    if (
-                        this.model.objects.has(this.model.ball) &&
-                        this.model.ball.boundHits.bottom
-                    ) {
-                        this.model.objects.delete(this.model.ball);
-                        this.model.ball = this.model.ballCreate();
-                        this.model.objects.add(this.model.ball);
-                        this.model.ball.canMove = false;
-                        setTimeout(() => {
-                            this.model.ball.canMove = true;
-                        }, CONSTANTS.GAME_BALL_RESPAWN_TIME_MS);
-                    }
-
-                    // Drawing
+                    this.gameLogic(deltaTime);
                     this.drawGame();
-
                     this.setSeconds(Math.floor(playTime));
                     if (this.seconds !== lastReportedScore) {
                         lastReportedScore = this.seconds;
@@ -293,6 +236,87 @@ export class Breakout {
             this.rafId = window.requestAnimationFrame(render);
         };
         this.rafId = window.requestAnimationFrame(render);
+    }
+
+    private gameLogic(dt: number) {
+        // Move and out of bounds check
+        this.model.paddle.direction = this.getDirection();
+        this.model.objects.all.forEach((e) => e.move(dt));
+        this.model.objects.all.forEach((e) => e.checkBounds());
+
+        // Block Steps
+        if (this.blockDownStepsCountdown > 0) {
+            this.blockDownStepsCountdown -= 1;
+            if (this.blockDownStepsCountdown === 0) {
+                this.model.activeBlocks
+                    .flat()
+                    .forEach((b) => (b.canMove = false));
+            }
+        }
+
+        // Collisions
+        for (const obj of this.model.objects.all) {
+            if (this.model.ball.collides(obj)) {
+                this.model.ball.handleCollision(obj);
+            }
+        }
+        this.filterBlocks();
+
+        // Ball Deletion, and respawn logic
+        if (
+            this.model.objects.has(this.model.ball) &&
+            this.model.ball.boundHits.bottom
+        ) {
+            this.model.objects.delete(this.model.ball);
+            this.model.ball = this.model.ballCreate();
+            this.model.objects.add(this.model.ball);
+            this.model.ball.canMove = false;
+            setTimeout(() => {
+                this.model.ball.canMove = true;
+            }, CONSTANTS.GAME_BALL_RESPAWN_TIME_MS);
+        }
+    }
+
+    drawGame(ctxFilter: string = "none") {
+        this.ctx.fillStyle = this.colors.background;
+
+        // Clear
+        this.ctx.fillRect(
+            this.transformations.game!.X(0),
+            this.transformations.game!.Y(0),
+            this.transformations.game!.X(1),
+            this.transformations.game!.Y(1),
+        );
+
+        this.model.objects.all.forEach((e) => {
+            this.ctx.filter = ctxFilter;
+            e.draw(this.ctx, this.transformations.game!);
+        });
+        this.ctx.filter = ctxFilter;
+
+        // Draw Borders
+        this.ctx.filter = "none";
+        this.ctx.strokeStyle = "white";
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(
+            this.transformations.game!.X(0),
+            this.transformations.game!.Y(0),
+            this.transformations.game!.X(1),
+            this.transformations.game!.Y(1),
+        );
+        this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    writeScreenText(text: string) {
+        this.ctx.fillStyle = "#fff";
+        this.ctx.textAlign = "center";
+        this.ctx.textBaseline = "middle";
+        this.ctx.font = `${this.transformations.screen!.Y(0.1)}px monospace`;
+        this.ctx.fillText(
+            text,
+            this.transformations.screen!.X(0.5),
+            this.transformations.screen!.Y(0.5),
+        );
     }
 
     private makeBreakoutModel() {
@@ -335,6 +359,7 @@ export class Breakout {
         };
 
         // Make view transformation functions
+        this.transformations["screen"] = makeTransform(game.screenView);
         this.transformations["game"] = makeTransform(game.mainViewID);
         if (this.startingBlocks.blockRowIndicator) {
             const sidebarID = game.splitView(game.mainViewID, 0.9, "vertical");
@@ -565,30 +590,6 @@ export class Breakout {
         if (this.model.activeBlocks.length <= 0) {
             this.setState("end");
         }
-    }
-
-    drawGame() {
-        this.ctx.fillStyle = this.colors.background;
-        this.ctx.fillRect(
-            this.transformations.game!.X(0),
-            this.transformations.game!.Y(0),
-            this.transformations.game!.X(1),
-            this.transformations.game!.Y(1),
-        );
-        this.model.objects.all.forEach((e) => {
-            e.draw(this.ctx, this.transformations.game!);
-        });
-
-        // Draw Borders
-        this.ctx.strokeStyle = "white";
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(
-            this.transformations.game!.X(0),
-            this.transformations.game!.Y(0),
-            this.transformations.game!.X(1),
-            this.transformations.game!.Y(1),
-        );
-        this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     destroy() {

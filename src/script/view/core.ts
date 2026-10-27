@@ -10,27 +10,33 @@ export type View = {
     vertical: Ends;
 };
 
+const SCREEN_VIEW = {
+    horizontal: {
+        start: 0,
+        end: 1,
+    },
+    vertical: {
+        start: 0,
+        end: 1,
+    },
+};
+
 export class GameWindow {
     private views: Record<number, View>;
     private viewIDCounter: number;
     constructor() {
         this.views = {
-            0: {
-                horizontal: {
-                    start: 0,
-                    end: 1,
-                },
-                vertical: {
-                    start: 0,
-                    end: 1,
-                },
-            },
+            0: structuredClone(SCREEN_VIEW),
         };
         this.viewIDCounter = 0;
     }
 
     get mainView() {
         return this.views[0];
+    }
+
+    get screenView() {
+        return -1;
     }
 
     get mainViewID() {
@@ -44,6 +50,9 @@ export class GameWindow {
     }
 
     view(id: number) {
+        if (id === -1) {
+            return structuredClone(SCREEN_VIEW);
+        }
         this.viewIDCheck(id);
         return this.views[id];
     }
