@@ -45,6 +45,7 @@ export type BreakoutStore = {
 };
 
 type ViewName = "game" | "sidebar" | "screen";
+type BallHiddenState = Ball & { _speedup: boolean };
 
 export class Breakout {
     readonly canvas: HTMLCanvasElement;
@@ -552,7 +553,6 @@ export class Breakout {
     }
 
     handleKeyDown(e: KeyboardEvent) {
-        type BallHiddenState = Ball & { _speedup: boolean };
         this.keySet.add(e.code);
         // stop page scrolling
         if (e.code.startsWith("Arrow") || e.code === "Space") {
@@ -560,26 +560,27 @@ export class Breakout {
         }
         // Speed up the ball
         if (this.controls.speedupKeys.some((k) => k === e.code)) {
-            if (!Object.hasOwn(this.model.ball, "_speedup")) {
-                (this.model.ball as BallHiddenState)._speedup = false;
-            }
-            if (!(this.model.ball as BallHiddenState)._speedup) {
-                (this.model.ball as BallHiddenState)._speedup = true;
-                this.model.ball.velocity *= 3;
+            // Ensure ball has default value (false)
+            const ball = this.model.ball as BallHiddenState;
+            ball._speedup = ball._speedup ?? false;
+
+            if (!ball._speedup) {
+                ball._speedup = true;
+                ball.velocity *= 3;
             }
         }
     }
     handleKeyUp(e: KeyboardEvent) {
-        type BallHiddenState = Ball & { _speedup: boolean };
         this.keySet.delete(e.code);
         // Speed up the ball
         if (this.controls.speedupKeys.some((k) => k === e.code)) {
-            if (!Object.hasOwn(this.model.ball, "_speedup")) {
-                (this.model.ball as BallHiddenState)._speedup = false;
-            }
-            if ((this.model.ball as BallHiddenState)._speedup) {
-                (this.model.ball as BallHiddenState)._speedup = false;
-                this.model.ball.velocity /= 3;
+            // Ensure ball has default value (false)
+            const ball = this.model.ball as BallHiddenState;
+            ball._speedup = ball._speedup ?? false;
+    
+            if (ball._speedup) {
+                ball._speedup = false;
+                ball.velocity /= 3;
             }
         }
     }
