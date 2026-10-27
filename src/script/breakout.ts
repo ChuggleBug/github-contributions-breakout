@@ -392,22 +392,6 @@ export class Breakout {
 
     private makeBreakoutModel() {
         const game = new GameWindow();
-        const gameWidth =
-            (game.mainView.horizontal.end - game.mainView.horizontal.start) *
-            this.width;
-        const gameHeight =
-            (game.mainView.vertical.end - game.mainView.vertical.start) *
-            this.height;
-        const yScaleFactor = gameWidth / gameHeight;
-        const yOffset = (gameHeight - gameWidth) / gameHeight;
-        const yScale = (y: number) => {
-            return y * yScaleFactor + yOffset;
-        };
-        const heightScale = (h: number) => {
-            return h * yScaleFactor;
-        };
-
-        this.handleResize();
 
         const makeTransform = (id: number): AxesModelTransform => {
             // Read the view on every call so changes to the view are picked up
@@ -436,6 +420,23 @@ export class Breakout {
             const sidebarID = game.splitView(game.mainViewID, 0.8, "vertical");
             this.transformations.sidebar = makeTransform(sidebarID);
         }
+
+        const gameWidth =
+            (game.mainView.horizontal.end - game.mainView.horizontal.start) *
+            this.width;
+        const gameHeight =
+            (game.mainView.vertical.end - game.mainView.vertical.start) *
+            this.height;
+        const yScaleFactor = gameWidth / gameHeight;
+        const yOffset = (gameHeight - gameWidth) / gameHeight;
+        const yScale = (y: number) => {
+            return y * yScaleFactor + yOffset;
+        };
+        const heightScale = (h: number) => {
+            return h * yScaleFactor;
+        };
+
+        this.handleResize();
 
         const makeBall = () => {
             // BallStartState.angleDeg can be either a
