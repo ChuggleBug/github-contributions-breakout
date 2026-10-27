@@ -1,4 +1,3 @@
-// GameComponent.tsx
 import "./breakout.css";
 import { useEffect, useRef } from "react";
 import { Breakout, type BreakoutOptions } from "../script/breakout";
