@@ -1,0 +1,9 @@
+export declare const BALL_PADDLE_MAX_BOUNCE_DEG = 60;
+export declare const BALL_PADDLE_NUDGE_DEG = 4;
+export declare const BALL_PADDLE_MAX_TOTAL_DEG = 75;
+export declare const GAME_MAX_DELTA_TIME = 0.05;
+export declare const GAME_BLOCK_STARTING_LEVEL = 0.3;
+export declare const GAME_BLOCK_DOWN_STEPS = 20;
+export declare const GAME_BALL_RESPAWN_TIME_MS = 500;
+export declare const GAME_BALL_SPEED_UP_FACTOR = 3;
+export declare const GAME_ROOT_FONT_SIZE_PX = 16;

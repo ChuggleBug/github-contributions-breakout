@@ -1,22 +1,61 @@
 {
     "name": "breakout",
-    "private": true,
-    "version": "0.0.0",
+    "version": "0.0.1",
     "type": "module",
+    "private": true,
     "scripts": {
         "dev": "vite",
-        "build": "tsc -b && vite build",
+        "build:demo": "vite build",
+        "build:lib": "vite build --config vite.config.lib.ts",
+        "build:iife": "vite build --config vite.config.iife.ts",
+        "build": "npm run build:lib && npm run build:iife && npm run build:demo",
+        "preview": "vite preview --outDir dist-app",
         "lint": "eslint .",
-        "format": "prettier --write .",
-        "preview": "vite preview",
-        "package": "esbuild src/script/breakout.ts --bundle --outfile=build/breakout.js --minify --format=iife --global-name=Breakout"
+        "format": "prettier --write ."
+    },
+    "files": [
+        "dist-lib"
+    ],
+    "main": "./dist-lib/breakout.cjs",
+    "module": "./dist-lib/breakout.js",
+    "types": "./dist-lib/index.d.ts",
+    "unpkg": "./dist-lib/breakout.iife.js",
+    "jsdelivr": "./dist-lib/breakout.iife.js",
+    "exports": {
+        ".": {
+            "types": "./dist-lib/index.d.ts",
+            "import": "./dist-lib/breakout.js",
+            "require": "./dist-lib/breakout.cjs"
+        },
+        "./react": {
+            "types": "./dist-lib/react.d.ts",
+            "import": "./dist-lib/react.js",
+            "require": "./dist-lib/react.cjs"
+        },
+        "./iife": "./dist-lib/breakout.iife.js",
+        "./style.css": "./dist-lib/breakout.css"
+    },
+    "sideEffects": [
+        "**/*.css"
+    ],
+    "peerDependencies": {
+        "react": ">=18",
+        "react-dom": ">=18"
+    },
+    "peerDependenciesMeta": {
+        "react": {
+            "optional": true
+        },
+        "react-dom": {
+            "optional": true
+        }
     },
     "dependencies": {
-        "prettier": "^3.9.10",
-        "react": "^19.3.1",
-        "react-dom": "^19.3.1"
+        "prettier": "^3.9.10"
     },
     "devDependencies": {
+        "react": "^19.3.1",
+        "react-dom": "^19.3.1",
         "@babel/core": "^7.29.7",
         "@eslint/js": "^10.0.1",
         "@rolldown/plugin-babel": "^0.2.4",
@@ -34,6 +73,7 @@
         "prettier-plugin-curly": "^0.4.1",
         "typescript": "~6.0.3",
         "typescript-eslint": "^8.71.2",
-        "vite": "^8.3.4"
+        "vite": "^8.3.4",
+        "vite-plugin-dts": "^5.1.2"
     }
 }
