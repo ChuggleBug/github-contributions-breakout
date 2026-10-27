@@ -27,6 +27,7 @@ import { Block } from "../script/model/block";
 import { GameWindow } from "../script/view/core";
 
 export interface BreakoutOptions {
+    id?: string;
     height: number;
     width: number;
     startingBlocks: BlockGrid;
@@ -85,12 +86,13 @@ export class Breakout {
         this.customPalette = opts.customPalette ?? null;
 
         // Canvas configurations
-        const element = document.getElementById("breakout");
+        const targetID = opts.id ?? "breakout";
+        const element = document.getElementById(targetID);
         if (!element) {
-            throw new Error('Missing HTML element canvas "breakout"');
+            throw new Error(`Missing HTML element canvas "${targetID}"`);
         }
         if (!(element instanceof HTMLCanvasElement)) {
-            throw new Error('HTML element "breakout" is not a canvas');
+            throw new Error(`HTML element "${targetID}" is not a canvas`);
         }
         this.canvas = element as HTMLCanvasElement;
         this.canvas.className = "breakout";
@@ -193,10 +195,6 @@ export class Breakout {
         let playTime: number = 0;
 
         const render = (time: number) => {
-            console.log(
-                "Blocks: ",
-                this.model.objects.all.filter((e) => e instanceof Block).length,
-            );
             if (lastTime === null) {
                 lastTime = time;
             }
@@ -600,6 +598,10 @@ export class Breakout {
     }
 
     handleResize() {
+        // When the game ends, it exits the loop and stops drawing
+        if (this.state === "end") {
+            return;
+        }
         const dpi = window.devicePixelRatio || 1;
         this.canvas.height = this.canvas.clientHeight * dpi;
         this.canvas.width = this.canvas.clientWidth * dpi;
