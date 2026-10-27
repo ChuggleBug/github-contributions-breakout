@@ -5,11 +5,7 @@ import type {
     BlockGrid,
     GameControlProperties,
 } from "./properties/types";
-import type {
-    State,
-    Direction,
-    AxesModelTransform,
-} from "./model/types";
+import type { State, Direction, AxesModelTransform } from "./model/types";
 import { ObjectSet, type BreakoutModel } from "./model/core";
 import {
     paletteFactory,
@@ -18,11 +14,7 @@ import {
 } from "./palettes/types";
 import * as CONSTANTS from "./constants";
 
-import {
-    DEFAULT_STATE,
-    DEFAULTS,
-    rangeSelect,
-} from "./properties/defaults";
+import { DEFAULT_STATE, DEFAULTS, rangeSelect } from "./properties/defaults";
 import { Block } from "./model/block";
 import { GameWindow } from "./view/core";
 
@@ -577,7 +569,7 @@ export class Breakout {
             // Ensure ball has default value (false)
             const ball = this.model.ball as BallHiddenState;
             ball._speedup = ball._speedup ?? false;
-    
+
             if (ball._speedup) {
                 ball._speedup = false;
                 ball.velocity /= 3;
