@@ -1,7 +1,7 @@
 import { useState } from "react";
-import type { State } from "../script/model/types";
-import { type BreakoutStore } from "../script/breakout";
-import { DEFAULT_STATE } from "../script/properties/defaults";
+import type { State } from "../core/model/types";
+import { type BreakoutStore } from "../core/breakout";
+import { DEFAULT_STATE } from "../core/properties/defaults";
 
 export function useBreakoutStore(): BreakoutStore {
     const [score, setScore] = useState(0);

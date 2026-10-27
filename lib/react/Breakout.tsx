@@ -1,12 +1,15 @@
 import "./breakout.css";
 import { useEffect, useRef } from "react";
-import { Breakout, type BreakoutOptions } from "../script/breakout";
+import {
+    Breakout as BreakoutGame,
+    type BreakoutOptions,
+} from "../core/breakout";
 
-type BreakoutProps = BreakoutOptions;
+export type BreakoutProps = BreakoutOptions;
 
-export default function GameComponent(props: BreakoutProps) {
+export function Breakout(props: BreakoutProps) {
     const containerRef = useRef<HTMLCanvasElement | null>(null);
-    const gameRef = useRef<Breakout | null>(null);
+    const gameRef = useRef<BreakoutGame | null>(null);
 
     // Create once, destroy on unmount
     useEffect(() => {
@@ -15,7 +18,7 @@ export default function GameComponent(props: BreakoutProps) {
             return;
         }
 
-        const game = new Breakout(props);
+        const game = new BreakoutGame(props);
         game.init();
         gameRef.current = game;
 
@@ -35,3 +38,5 @@ export default function GameComponent(props: BreakoutProps) {
 
     return <canvas id="breakout" ref={containerRef} />;
 }
+
+export default Breakout;

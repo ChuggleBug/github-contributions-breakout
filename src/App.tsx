@@ -1,8 +1,8 @@
 import "./App.css";
-import Breakout from "./components/Breakout";
+import { Breakout } from "../lib/react";
 import { useState, useEffect, useRef } from "react";
-import { useBreakoutStore } from "./components/useBreakoutStore";
-import { type BreakoutStore } from "./script/breakout";
+import { useBreakoutStore } from "../lib/react";
+import { type BreakoutStore } from "../lib/react";
 import type { BlockGrid } from "./script/properties/types";
 import { user } from "./user";
 

@@ -1,30 +1,30 @@
-import { Paddle } from "../script/model/paddle";
-import { Ball } from "../script/model/ball";
+import { Paddle } from "./model/paddle";
+import { Ball } from "./model/ball";
 import type {
     BreakoutProperties,
     BlockGrid,
     GameControlProperties,
-} from "../script/properties/types";
+} from "./properties/types";
 import type {
     State,
     Direction,
     AxesModelTransform,
-} from "../script/model/types";
-import { ObjectSet, type BreakoutModel } from "../script/model/core";
+} from "./model/types";
+import { ObjectSet, type BreakoutModel } from "./model/core";
 import {
     paletteFactory,
     type BreakoutColorPalatte,
     type ColorPalette,
-} from "../script/palettes/types";
-import * as CONSTANTS from "../script/constants";
+} from "./palettes/types";
+import * as CONSTANTS from "./constants";
 
 import {
     DEFAULT_STATE,
     DEFAULTS,
     rangeSelect,
-} from "../script/properties/defaults";
-import { Block } from "../script/model/block";
-import { GameWindow } from "../script/view/core";
+} from "./properties/defaults";
+import { Block } from "./model/block";
+import { GameWindow } from "./view/core";
 
 export interface BreakoutOptions {
     id?: string;
