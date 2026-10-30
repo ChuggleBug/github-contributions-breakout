@@ -1,113 +1,179 @@
-import "./App.css";
-import { Breakout } from "@lib/react";
-import { useState, useEffect, useRef } from "react";
-import { useBreakoutStore } from "@lib/react";
-import { type BreakoutStore } from "@lib/react";
-import type { BlockGrid } from "@lib";
-import { user } from "./user";
+import { useState } from "react";
+import { Breakout, type BreakoutProps } from "@breakout/react";
+import { FaRegCopy } from "react-icons/fa";
+
+import type { BlocksDriver, GitHubBlocks } from "./util/blocks/types/core";
+import { Dropdown } from "./components/Dropdown";
+import { SlidingToggle } from "./components/SlidingToggle";
+import { INITIAL_SHARED, type SharedFormState } from "./forms/shared";
+import { SOURCES, type SourceKey } from "./forms/sources";
+
+const GAME_HEIGHT = 750;
+const GAME_WIDTH = 500;
+
+const CONFIG_TABS = [
+    { value: "api", label: "API Configurations" },
+    { value: "game", label: "Game Configurations" },
+] as const;
+
+type ConfigTab = (typeof CONFIG_TABS)[number]["value"];
 
 function App() {
-    const store: BreakoutStore = useBreakoutStore();
+    const [startingBlocks, setStartingBlocks] = useState<
+        BreakoutProps["startingBlocks"] | null
+    >(null);
+    const gameLoaded = startingBlocks !== null;
 
-    const [seconds, setSeconds] = useState(0);
+    const [configTab, setConfigTab] = useState<ConfigTab>("api");
 
-    const DAY = 86_400_000;
-    const now = new Date();
-    const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-    const thisSunday = today - new Date(today).getUTCDay() * DAY;
-    const earliest = Math.min(
-        ...user.contributions.map((c) => Date.parse(c.date)),
-    );
-    const earliestSunday = earliest - new Date(earliest).getUTCDay() * DAY;
-    const weeks = Math.round((thisSunday - earliestSunday) / (7 * DAY)) + 1;
-    const levels = new Map(user.contributions.map((c) => [c.date, c.level]));
+    const [sourceKey, setSourceKey] = useState<SourceKey>("account");
+    const source = SOURCES[sourceKey];
+    // Lives in App so shared options survive swapping sources.
+    const [shared, setShared] = useState<SharedFormState>(INITIAL_SHARED);
 
-    let blocks: BlockGrid;
+    const [rawInput, setRawInput] = useState<GitHubBlocks | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const rawInputPretty = rawInput
+        ? JSON.stringify(rawInput, null, 2)
+        : "(none)";
 
-    blocks = {
-        blocksPerRow: 7,
-        blocks: Array.from({ length: weeks * 7 }, (_, i) => {
-            // Each row of 7 is one week; days within a row now run Saturday → Sunday.
-            const day =
-                thisSunday - Math.floor(i / 7) * 7 * DAY + (6 - (i % 7)) * DAY;
+    const [copied, setCopied] = useState(false);
 
-            return {
-                level:
-                    day > today
-                        ? 0 // filler: future days in the current week
-                        : (levels.get(
-                              new Date(day).toISOString().slice(0, 10),
-                          ) ?? 0), // filler for gaps
-            };
-        }),
+    const handleSubmission = async (driver: BlocksDriver) => {
+        setRawInput(null);
+        setError(null);
+
+        setLoading(true);
+        try {
+            setRawInput(await driver.getBlocks());
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setLoading(false);
+        }
     };
 
-    useEffect(() => {
-        const id = setInterval(() => {
-            setSeconds((prev) => prev + 1);
-        }, 1000);
-
-        return () => clearInterval(id);
-    }, []);
-
-    const divRef = useRef<HTMLDivElement>(null);
+    const handleCopy = () => {
+        if (!error && rawInput) {
+            navigator.clipboard.writeText(rawInputPretty);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+        }
+    };
 
     return (
-        <div
-            style={{
-                height: "100vh",
-                // width: "100vw",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-            }}
-        >
-            <div ref={divRef}>
-                <Breakout
-                    height={750}
-                    width={500}
-                    store={store}
-                    startingBlocks={blocks}
-                    properties={{
-                        sidebar: {
-                            blockRowIndicator: (n: number) => {
-                                const start = new Date(
-                                    thisSunday - n * 7 * DAY,
-                                ); // Sunday of this row
-                                const end = new Date(start.getTime() + 6 * DAY); // Saturday of this row
+        <main className="grid min-h-dvh grid-cols-1 gap-10 p-10 xl:grid-cols-2">
+            {/* Game Content */}
+            <section className="flex items-center justify-center">
+                {gameLoaded ? (
+                    <Breakout
+                        height={GAME_HEIGHT}
+                        width={GAME_WIDTH}
+                        startingBlocks={startingBlocks}
+                    />
+                ) : (
+                    <div
+                        style={{ width: GAME_WIDTH, height: GAME_HEIGHT }}
+                        className="flex items-center justify-center rounded-md border border-dashed border-border"
+                    >
+                        Load a user or repository to start playing
+                    </div>
+                )}
+            </section>
 
-                                // The row contains the 1st of a month iff its Saturday falls on day 1-7
-                                const monthStarts = end.getUTCDate() <= 7;
-                                if (n !== 0 && !monthStarts) {
-                                    return "";
-                                }
-
-                                const month = end.toLocaleString("en-US", {
-                                    month: "short",
-                                    timeZone: "UTC",
-                                });
-
-                                return `${month}`;
-                            },
-                            blockRowIndicatorWidthHint: 3,
-                        },
-                    }}
-                />
-            </div>
-            <div
-                style={{
-                    width: `${divRef.current?.clientWidth ?? 200}px`,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "start",
-                    alignItems: "start",
-                }}
-            >
-                <div>Time (Game): {store.secondsElapsed}</div>
-                <div>Time: {seconds}</div>
-            </div>
-        </div>
+            {/* Configs. `contain: size` stops the output from growing the row, so this column fills the height instead. */}
+            <section className="flex flex-col gap-6 xl:contain-size">
+                <h1>GitHub Contributions Breakout</h1>
+                <Dropdown text="Configurations">
+                    <SlidingToggle
+                        options={CONFIG_TABS}
+                        value={configTab}
+                        onChange={setConfigTab}
+                    />
+                    {configTab === "api" ? (
+                        <>
+                            <label className="flex items-center gap-2">
+                                Get contributions at the
+                                <select
+                                    className="input py-1"
+                                    value={sourceKey}
+                                    onChange={(e) =>
+                                        setSourceKey(
+                                            e.target.value as SourceKey,
+                                        )
+                                    }
+                                >
+                                    {(Object.keys(SOURCES) as SourceKey[]).map(
+                                        (key) => (
+                                            <option key={key} value={key}>
+                                                {key}
+                                            </option>
+                                        ),
+                                    )}
+                                </select>
+                                level
+                            </label>
+                            {/* `key` makes each source start with its own fresh state when swapped. */}
+                            <source.Form
+                                key={sourceKey}
+                                shared={shared}
+                                onSharedChange={setShared}
+                                onSubmit={handleSubmission}
+                            />
+                        </>
+                    ) : (
+                        <p>Game configurations coming soon</p>
+                    )}
+                </Dropdown>
+                <Dropdown
+                    text={`${source.label} Level API Output`}
+                    className="min-h-0 flex-1"
+                >
+                    {error && (
+                        <div className="flash-error" role="alert">
+                            <strong className="text-danger">Error: </strong>
+                            {error}
+                        </div>
+                    )}
+                    <div className="relative flex min-h-0 flex-1 flex-col">
+                        <div className="absolute top-2 right-2 flex items-center">
+                            <div
+                                className={`${copied ? "opacity-100" : "opacity-0"} transition-opacity absolute right-full mr-2 rounded-md border border-control-border bg-control px-2 py-1 text-xs whitespace-nowrap text-fg shadow-lg`}
+                                role="status"
+                            >
+                                Copied!
+                            </div>
+                            <button
+                                className="flex size-8 items-center justify-center rounded-md border border-control-border bg-control text-fg-muted transition-colors hover:bg-control-hover hover:text-fg"
+                                type="button"
+                                aria-label="Copy Output"
+                                onClick={handleCopy}
+                            >
+                                <FaRegCopy />
+                            </button>
+                        </div>
+                        <pre className="panel max-h-96 min-h-24 flex-1 xl:max-h-none">
+                            {rawInput ? (
+                                rawInputPretty
+                            ) : (
+                                <span className="text-fg-muted">
+                                    No output yet
+                                </span>
+                            )}
+                        </pre>
+                    </div>
+                </Dropdown>
+                <div>
+                    <button
+                        className="btn btn-primary btn-lg"
+                        onClick={() => {}}
+                    >
+                        Start Game
+                    </button>
+                </div>
+            </section>
+        </main>
     );
 }
 

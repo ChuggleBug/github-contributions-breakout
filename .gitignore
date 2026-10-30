@@ -25,3 +25,4 @@ breakout-*.tgz
 *.sw?
 
 scrap
+.env

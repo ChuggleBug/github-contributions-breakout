@@ -1,112 +1,159 @@
-:root {
-    --text: #6b6375;
-    --text-h: #08060d;
-    --bg: #fff;
-    --border: #e5e4e7;
-    --code-bg: #f4f3ec;
-    --accent: #aa3bff;
-    --accent-bg: rgba(170, 59, 255, 0.1);
-    --accent-border: rgba(170, 59, 255, 0.5);
-    --social-bg: rgba(244, 243, 236, 0.5);
-    --shadow:
-        rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@import "tailwindcss";
 
-    --sans: system-ui, "Segoe UI", Roboto, sans-serif;
-    --heading: system-ui, "Segoe UI", Roboto, sans-serif;
-    --mono: ui-monospace, Consolas, monospace;
+/* Colors are based on GitHub's dark theme */
+@theme {
+    --font-sans:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica,
+        Arial, sans-serif;
+    --font-mono:
+        ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-    font: 18px/145% var(--sans);
-    letter-spacing: 0.18px;
-    color-scheme: light dark;
-    color: var(--text);
-    background: var(--bg);
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    --color-canvas: #16171d;
+    --color-canvas-inset: #1f2028;
+    --color-fg: #f3f4f6;
+    --color-fg-muted: #9ca3af;
+    --color-border: #2e303a;
+    --color-link: #4493f8;
+    --color-focus: #1f6feb;
 
-    @media (max-width: 1024px) {
-        font-size: 16px;
-    }
+    --color-control: rgb(42, 49, 60);
+    --color-control-hover: rgb(52, 59, 70);
+    --color-control-border: rgb(61, 68, 77);
+
+    --color-success: rgb(46, 153, 64);
+    --color-success-hover: #29903b;
+
+    --color-danger: #f85149;
+    --color-danger-muted: rgb(248 81 73 / 0.1);
+    --color-danger-border: rgb(248 81 73 / 0.4);
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
     :root {
-        --text: #9ca3af;
-        --text-h: #f3f4f6;
-        --bg: #16171d;
-        --border: #2e303a;
-        --code-bg: #1f2028;
-        --accent: #c084fc;
-        --accent-bg: rgba(192, 132, 252, 0.15);
-        --accent-border: rgba(192, 132, 252, 0.5);
-        --social-bg: rgba(47, 48, 58, 0.5);
-        --shadow:
-            rgba(0, 0, 0, 0.4) 0 10px 15px -3px,
-            rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+        color-scheme: dark;
+        color: var(--color-fg-muted);
+        background: var(--color-canvas);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
     }
 
-    #social .button-icon {
-        filter: invert(1) brightness(2);
+    body {
+        @apply text-sm;
+    }
+
+    h1 {
+        @apply text-3xl font-semibold text-fg;
+    }
+
+    h2 {
+        @apply text-xl font-semibold text-fg;
+    }
+
+    a {
+        color: var(--color-link);
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--color-focus);
+        outline-offset: 2px;
     }
 }
 
-#root {
-    width: 1126px;
-    max-width: 100%;
-    margin: 0 auto;
-    text-align: center;
-    border-inline: 1px solid var(--border);
-    min-height: 100svh;
-    display: flex;
-    flex-direction: column;
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-}
-
-h1,
-h2 {
-    font-family: var(--heading);
-    font-weight: 500;
-    color: var(--text-h);
-}
-
-h1 {
-    font-size: 56px;
-    letter-spacing: -1.68px;
-    margin: 32px 0;
-    @media (max-width: 1024px) {
-        font-size: 36px;
-        margin: 20px 0;
+@layer components {
+    /* Buttons */
+    .btn {
+        @apply inline-flex items-center justify-center rounded-md border border-control-border bg-control px-4 py-1.5 font-medium text-fg transition-colors hover:bg-control-hover;
     }
-}
-h2 {
-    font-size: 24px;
-    line-height: 118%;
-    letter-spacing: -0.24px;
-    margin: 0 0 8px;
-    @media (max-width: 1024px) {
-        font-size: 20px;
+
+    .btn-primary {
+        @apply border-white/10 bg-success text-white hover:bg-success-hover;
     }
-}
-p {
-    margin: 0;
-}
 
-code,
-.counter {
-    font-family: var(--mono);
-    display: inline-flex;
-    border-radius: 4px;
-    color: var(--text-h);
-}
+    .btn-lg {
+        @apply px-6 py-2.5 text-xl font-bold;
+    }
 
-code {
-    font-size: 15px;
-    line-height: 135%;
-    padding: 4px 8px;
-    background: var(--code-bg);
+    /* Form fields */
+    .field {
+        @apply flex items-center gap-2;
+    }
+
+    .field-label {
+        @apply w-40 shrink-0 font-medium text-fg;
+    }
+
+    .input {
+        @apply min-w-0 rounded-md border border-control-border bg-canvas-inset px-3 py-1.5 text-fg placeholder:text-fg-muted;
+    }
+
+    .input:focus-visible {
+        border-color: var(--color-focus);
+        outline: 1px solid var(--color-focus);
+        outline-offset: -1px;
+    }
+
+    .input[type="text"],
+    .input[type="password"] {
+        @apply flex-1 font-mono;
+    }
+
+    /* Collapsible box */
+    .details {
+        @apply rounded-md border border-border;
+    }
+
+    .details > summary {
+        @apply cursor-pointer rounded-md px-3 py-1.5 font-medium text-fg select-none hover:bg-control;
+    }
+
+    .details[open] > summary {
+        @apply rounded-b-none border-b border-border;
+    }
+
+    .details-body {
+        @apply flex flex-col gap-2 p-3;
+    }
+
+    /* Read-only, scrollable text box */
+    .panel {
+        @apply overflow-auto rounded-md border border-border bg-canvas-inset p-3 font-mono text-xs text-fg;
+    }
+
+    .flash-error {
+        @apply rounded-md border border-danger-border bg-danger-muted px-4 py-3 text-fg;
+    }
+
+    code {
+        @apply rounded-md bg-control px-1.5 py-0.5 font-mono text-xs text-fg;
+    }
+
+    /* Token popover */
+    .token-disclosure {
+        @apply invisible absolute top-full right-0 z-10 mt-2 flex w-[min(32rem,80vw)] flex-col gap-2 rounded-md border border-border bg-canvas p-3 text-left opacity-0 shadow-lg transition-[opacity,visibility] duration-100;
+    }
+
+    .token-disclosure--show {
+        @apply visible opacity-100;
+    }
+
+    /* Segmented toggle */
+    .slider {
+        @apply relative flex rounded-md bg-control p-1;
+    }
+
+    .slider-indicator {
+        @apply absolute inset-y-1 left-1 rounded-md bg-success shadow-sm transition-transform duration-300;
+    }
+
+    .slider-option {
+        @apply relative flex-1 rounded-md px-4 py-1 text-fg-muted transition-colors duration-300;
+    }
+
+    .slider-option[aria-selected="true"] {
+        @apply text-white;
+    }
 }
