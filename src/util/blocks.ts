@@ -3,7 +3,7 @@ import type {
     BlocksDriverOptions,
     GitHubBlocks,
     BlockFilerOptions,
-} from "./blocks/types/types";
+} from "./blocks/types/core";
 import type {
     Response,
     ErrorResponse,
@@ -20,6 +20,11 @@ export abstract class AbstractBlockDriver implements BlocksDriver {
         }
         this.url = _url;
         this.filters = filters ?? null; // Convert undefined to null
+    }
+
+    withFilters(filters: BlockFilerOptions): this {
+        this.filters = filters;
+        return this;
     }
 
     abstract getBlocks(): Promise<GitHubBlocks>;
@@ -85,11 +90,8 @@ export class ContributionsAPIBlockDriver extends AbstractBlockDriver {
         // and days after today (the API returns them)
         json.contributions = json.contributions.filter((c) => {
             const d = new Date(Date.parse(c.date));
-            // Greater than since
-            // Skip greater than if not present
-            return this.filters?.sinceDate
-                ? d >= this.filters.sinceDate
-                : true && d <= now; // Less than curent day
+            // On or after since (if present), and not after today
+            return (!this.filters || d >= this.filters.sinceDate) && d <= now;
         });
 
         return {

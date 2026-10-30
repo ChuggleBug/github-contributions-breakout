@@ -15,5 +15,6 @@ export type BlockFilerOptions = {
 };
 
 export interface BlocksDriver {
+    withFilters(filters: BlockFilerOptions): this;
     getBlocks(): Promise<GitHubBlocks>;
 }
