@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
 import { Breakout, type BreakoutProps } from "@breakout/react";
 import { FaRegCopy } from "react-icons/fa";
 
@@ -30,8 +30,8 @@ function App() {
         BreakoutProps["startingBlocks"] | null
     >(null);
     const gameStart = startingBlocks !== null;
-    const propertiesRef = useRef<BreakoutGameProperties>({});
-    
+    // const propertiesRef = useRef<BreakoutGameProperties>({});
+    const [properties, setProperties] = useState<BreakoutGameProperties>({});
 
     const [configTab, setConfigTab] = useState<ConfigTab>("api");
 
@@ -104,7 +104,7 @@ function App() {
         const { data, properties: sidebar } = blockTransform(rawOuput, {
             rowLength,
         });
-        propertiesRef.current.sidebar = sidebar;
+        setProperties({...properties, sidebar})
         setStartingBlocks(data);
     };
 
@@ -117,7 +117,7 @@ function App() {
                         height={GAME_HEIGHT}
                         width={GAME_WIDTH}
                         startingBlocks={startingBlocks}
-                        properties={propertiesRef.current}
+                        properties={properties}
                     />
                 ) : (
                     <div
