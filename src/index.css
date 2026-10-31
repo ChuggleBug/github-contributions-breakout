@@ -38,7 +38,7 @@
     }
 
     body {
-        @apply text-sm;
+        @apply font-medium text-fg;
     }
 
     h1 {
