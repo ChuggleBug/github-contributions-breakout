@@ -17,12 +17,14 @@ export function Disclosure({
     const panelId = useId();
 
     return (
-        <div className="relative flex">
+        <div
+            className="relative flex"
+            onMouseEnter={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
+        >
             <button
                 className="text-fg-muted hover:text-fg"
                 type="button"
-                onMouseEnter={() => setOpen(true)}
-                onMouseLeave={() => setOpen(false)}
                 onClick={() => setOpen((prev) => !prev)}
                 aria-label={label}
                 aria-expanded={open}
