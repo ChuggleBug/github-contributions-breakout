@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Breakout, type BreakoutProps } from "@breakout/react";
 import { FaRegCopy } from "react-icons/fa";
 
@@ -7,6 +7,7 @@ import { Dropdown } from "./components/Dropdown";
 import { SlidingToggle } from "./components/SlidingToggle";
 import { INITIAL_SHARED, type SharedFormState } from "./forms/shared";
 import { SOURCES, type SourceKey } from "./forms/sources";
+import { ImOpt } from "react-icons/im";
 
 const GAME_HEIGHT = 750;
 const GAME_WIDTH = 500;
@@ -45,13 +46,19 @@ function App() {
         setError(null);
 
         setLoading(true);
-        try {
-            setRawInput(await driver.getBlocks());
-        } catch (e) {
-            setError(e instanceof Error ? e.message : String(e));
-        } finally {
-            setLoading(false);
-        }
+
+        setTimeout(
+            async () => {
+                try {
+                    setRawInput(await driver.getBlocks());
+                } catch (e) {
+                    setError(e instanceof Error ? e.message : String(e));
+                } finally {
+                    setLoading(false);
+                }
+            },
+            import.meta.env.VITE_MODE === "development" ? 1000 : 0,
+        );
     };
 
     const handleCopy = () => {
@@ -61,6 +68,23 @@ function App() {
             setTimeout(() => setCopied(false), 1500);
         }
     };
+
+    let textContent: React.ReactNode | string = (
+        <span className="text-fg-muted">No output yet</span>
+    );
+    if (error) {
+        textContent = (
+            <>
+                <strong className="text-danger">Error: </strong>
+                <span>{error}</span>
+            </>
+        );
+    }
+    if (loading && !rawInput) {
+        textContent = "Loading";
+    } else if (!loading && rawInput) {
+        textContent = rawInputPretty;
+    }
 
     return (
         <main className="grid min-h-dvh grid-cols-1 gap-10 p-10 xl:grid-cols-2">
@@ -127,15 +151,9 @@ function App() {
                     )}
                 </Dropdown>
                 <Dropdown
-                    text={`${source.label} Level API Output`}
+                    text={`${source.label} Level Output`}
                     className="min-h-0 flex-1"
                 >
-                    {error && (
-                        <div className="flash-error" role="alert">
-                            <strong className="text-danger">Error: </strong>
-                            {error}
-                        </div>
-                    )}
                     <div className="relative flex min-h-0 flex-1 flex-col">
                         <div className="absolute top-2 right-2 flex items-center">
                             <div
@@ -154,13 +172,7 @@ function App() {
                             </button>
                         </div>
                         <pre className="panel max-h-96 min-h-24 flex-1 xl:max-h-none">
-                            {rawInput ? (
-                                rawInputPretty
-                            ) : (
-                                <span className="text-fg-muted">
-                                    No output yet
-                                </span>
-                            )}
+                            {textContent}
                         </pre>
                     </div>
                 </Dropdown>
