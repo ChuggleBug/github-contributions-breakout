@@ -5,12 +5,12 @@ import { defineConfig } from "vite";
 
 // https://vite.dev/config/
 export default defineConfig({
+    base: "/app/gh-blocks",
     plugins: [
         react(),
         babel({ presets: [reactCompilerPreset()] }),
         tailwindcss(),
     ],
-    base: "./",
     build: { outDir: "dist-app" },
     resolve: {
         alias: { "@breakout": "../lib", "@breakout/react": "../lib/react" },

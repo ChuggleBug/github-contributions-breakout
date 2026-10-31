@@ -1,0 +1,40 @@
+name: Build GitHub Breakout
+
+on:
+    push:
+        branches: ["main"]
+
+permissions:
+    contents: read
+
+concurrency:
+    group: "build"
+    cancel-in-progress: true
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v6
+
+            - name: Setup Node
+              uses: actions/setup-node@v7
+              with:
+                  node-version: 24
+                  cache: npm
+                  cache-dependency-path: package-lock.json
+
+            - name: Install dependencies
+              working-directory: .
+              run: npm ci
+
+            - name: Build Project
+              run: npm run build
+
+            - name: "Upload Artifact"
+              uses: actions/upload-artifact@v7
+              with:
+                  name: dist
+                  path: dist-app
+                  retention-days: 90
