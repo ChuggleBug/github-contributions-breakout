@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useReducer, useRef, useState } from "react";
 import { Breakout, type BreakoutProps } from "@breakout/react";
 import { FaRegCopy } from "react-icons/fa";
 
@@ -7,7 +7,12 @@ import { Dropdown } from "./components/Dropdown";
 import { SlidingToggle } from "./components/SlidingToggle";
 import { INITIAL_SHARED, type SharedFormState } from "./forms/shared";
 import { SOURCES, type SourceKey } from "./forms/sources";
-import { ImOpt } from "react-icons/im";
+import {
+    blockTransform,
+    ROW_SIZES,
+    type RowLength,
+} from "./util/transform/blocks_transform";
+import type { BreakoutGameProperties } from "@breakout";
 
 const GAME_HEIGHT = 750;
 const GAME_WIDTH = 500;
@@ -23,7 +28,8 @@ function App() {
     const [startingBlocks, setStartingBlocks] = useState<
         BreakoutProps["startingBlocks"] | null
     >(null);
-    const gameLoaded = startingBlocks !== null;
+    const gameStart = startingBlocks !== null;
+    const propertiesRef = useRef<BreakoutGameProperties>({});
 
     const [configTab, setConfigTab] = useState<ConfigTab>("api");
 
@@ -40,6 +46,24 @@ function App() {
         : "(none)";
 
     const [copied, setCopied] = useState(false);
+
+    let textContent: React.ReactNode | string = (
+        <span className="text-fg-muted">No output yet</span>
+    );
+    if (error) {
+        textContent = (
+            <>
+                <strong className="text-danger">Error: </strong>
+                <span>{error}</span>
+            </>
+        );
+    } else if (loading && !rawInput) {
+        textContent = "Loading";
+    } else if (!loading && rawInput) {
+        textContent = rawInputPretty;
+    }
+
+    const [rowLength, setRowLength] = useState<RowLength>("weekly");
 
     const handleSubmission = async (driver: BlocksDriver) => {
         setRawInput(null);
@@ -69,32 +93,27 @@ function App() {
         }
     };
 
-    let textContent: React.ReactNode | string = (
-        <span className="text-fg-muted">No output yet</span>
-    );
-    if (error) {
-        textContent = (
-            <>
-                <strong className="text-danger">Error: </strong>
-                <span>{error}</span>
-            </>
-        );
-    }
-    if (loading && !rawInput) {
-        textContent = "Loading";
-    } else if (!loading && rawInput) {
-        textContent = rawInputPretty;
-    }
+    const handleGameStart = () => {
+        if (!rawInput) {
+            return;
+        }
+        const { data, properties: sidebar } = blockTransform(rawInput, {
+            rowLength,
+        });
+        propertiesRef.current.sidebar = sidebar;
+        setStartingBlocks(data);
+    };
 
     return (
         <main className="grid min-h-dvh grid-cols-1 gap-10 p-10 xl:grid-cols-2">
             {/* Game Content */}
             <section className="flex items-center justify-center">
-                {gameLoaded ? (
+                {gameStart ? (
                     <Breakout
                         height={GAME_HEIGHT}
                         width={GAME_WIDTH}
                         startingBlocks={startingBlocks}
+                        properties={propertiesRef.current}
                     />
                 ) : (
                     <div
@@ -147,7 +166,30 @@ function App() {
                             />
                         </>
                     ) : (
-                        <p>Game configurations coming soon</p>
+                        <>
+                            <label className="flex items-center gap-2">
+                                Set rows to
+                                <select
+                                    className="input py-1"
+                                    onChange={(e) =>
+                                        setRowLength(
+                                            e.target.value as RowLength,
+                                        )
+                                    }
+                                >
+                                    {(
+                                        Object.keys(ROW_SIZES) as RowLength[]
+                                    ).map((key) => (
+                                        <div>
+                                            <option key={key} value={key}>
+                                                {key}
+                                            </option>
+                                        </div>
+                                    ))}
+                                </select>
+                                {`(${ROW_SIZES[rowLength]}`} blocks per row{")"}
+                            </label>
+                        </>
                     )}
                 </Dropdown>
                 <Dropdown
@@ -179,7 +221,7 @@ function App() {
                 <div>
                     <button
                         className="btn btn-primary btn-lg"
-                        onClick={() => {}}
+                        onClick={handleGameStart}
                     >
                         Start Game
                     </button>
