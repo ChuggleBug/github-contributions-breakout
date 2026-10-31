@@ -108,7 +108,7 @@ export function blockTransform(
 
                 // The row contains the 1st of a month iff its Saturday falls within the row's length
                 const monthStarts = new Date(end).getUTCDate() <= blocksPerRow;
-                if (n !== 0 && !monthStarts) {
+                if (!monthStarts) {
                     return "";
                 }
 

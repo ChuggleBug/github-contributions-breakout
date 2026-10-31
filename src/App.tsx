@@ -13,6 +13,7 @@ import {
     type RowLength,
 } from "./util/transform/blocks_transform";
 import type { BreakoutGameProperties } from "@breakout";
+import { getSavedOutput, setSavedOutput } from "./util/local_storage";
 
 const GAME_HEIGHT = 750;
 const GAME_WIDTH = 500;
@@ -30,6 +31,7 @@ function App() {
     >(null);
     const gameStart = startingBlocks !== null;
     const propertiesRef = useRef<BreakoutGameProperties>({});
+    
 
     const [configTab, setConfigTab] = useState<ConfigTab>("api");
 
@@ -38,11 +40,13 @@ function App() {
     // Lives in App so shared options survive swapping sources.
     const [shared, setShared] = useState<SharedFormState>(INITIAL_SHARED);
 
-    const [rawInput, setRawInput] = useState<GitHubBlocks | null>(null);
+    const [rawOuput, setRawOutput] = useState<GitHubBlocks | null>(
+        getSavedOutput(),
+    );
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const rawInputPretty = rawInput
-        ? JSON.stringify(rawInput, null, 2)
+    const rawOutputPretty = rawOuput
+        ? JSON.stringify(rawOuput, null, 2)
         : "(none)";
 
     const [copied, setCopied] = useState(false);
@@ -57,16 +61,16 @@ function App() {
                 <span>{error}</span>
             </>
         );
-    } else if (loading && !rawInput) {
+    } else if (loading && !rawOuput) {
         textContent = "Loading";
-    } else if (!loading && rawInput) {
-        textContent = rawInputPretty;
+    } else if (!loading && rawOuput) {
+        textContent = rawOutputPretty;
     }
 
     const [rowLength, setRowLength] = useState<RowLength>("weekly");
 
     const handleSubmission = async (driver: BlocksDriver) => {
-        setRawInput(null);
+        setRawOutput(null);
         setError(null);
 
         setLoading(true);
@@ -74,7 +78,7 @@ function App() {
         setTimeout(
             async () => {
                 try {
-                    setRawInput(await driver.getBlocks());
+                    setRawOutput(await driver.getBlocks());
                 } catch (e) {
                     setError(e instanceof Error ? e.message : String(e));
                 } finally {
@@ -86,18 +90,18 @@ function App() {
     };
 
     const handleCopy = () => {
-        if (!error && rawInput) {
-            navigator.clipboard.writeText(rawInputPretty);
+        if (!error && rawOuput) {
+            navigator.clipboard.writeText(rawOutputPretty);
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
         }
     };
 
     const handleGameStart = () => {
-        if (!rawInput) {
+        if (!rawOuput) {
             return;
         }
-        const { data, properties: sidebar } = blockTransform(rawInput, {
+        const { data, properties: sidebar } = blockTransform(rawOuput, {
             rowLength,
         });
         propertiesRef.current.sidebar = sidebar;
@@ -180,11 +184,9 @@ function App() {
                                     {(
                                         Object.keys(ROW_SIZES) as RowLength[]
                                     ).map((key) => (
-                                        <div>
-                                            <option key={key} value={key}>
-                                                {key}
-                                            </option>
-                                        </div>
+                                        <option key={key} value={key}>
+                                            {key}
+                                        </option>
                                     ))}
                                 </select>
                                 {`(${ROW_SIZES[rowLength]}`} blocks per row{")"}
@@ -218,20 +220,50 @@ function App() {
                         </pre>
                     </div>
                 </Dropdown>
-                <div className="flex flex-row gap-5">
-                    <button
-                        className="btn btn-primary btn-lg"
-                        onClick={handleGameStart}
-                        disabled={!rawInput}
-                    >
-                        Start Game
-                    </button>
-                    <button
-                        className="btn btn-gray btn-lg"
-                        onClick={() => setStartingBlocks(null)}
-                    >
-                        Reload Game
-                    </button>
+                <div className="flex flex-row justify-between">
+                    <div className="flex flex-row gap-5">
+                        <button
+                            className="btn btn-primary btn-lg"
+                            onClick={handleGameStart}
+                            disabled={!rawOuput || gameStart}
+                        >
+                            Start Game
+                        </button>
+                        <button
+                            className="btn btn-gray btn-lg"
+                            onClick={() => {
+                                setStartingBlocks(null);
+                                setConfigTab("game");
+                            }}
+                            disabled={!gameStart}
+                        >
+                            Reload Game
+                        </button>
+                    </div>
+                    <div className="flex flex-row gap-5">
+                        <button
+                            className="btn btn-gray btn-lg"
+                            onClick={() => {
+                                if (rawOuput) {
+                                    setSavedOutput(rawOuput);
+                                }
+                            }}
+                            disabled={!rawOuput}
+                        >
+                            Save Output
+                        </button>
+                        <button
+                            className="btn btn-danger btn-lg"
+                            onClick={() => {
+                                if (rawOuput) {
+                                    setRawOutput(null);
+                                    setSavedOutput(null);
+                                }
+                            }}
+                        >
+                            Clear Output
+                        </button>
+                    </div>
                 </div>
             </section>
         </main>

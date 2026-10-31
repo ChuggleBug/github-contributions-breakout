@@ -29,6 +29,8 @@
     --color-danger: #f85149;
     --color-danger-muted: rgb(248 81 73 / 0.1);
     --color-danger-border: rgb(248 81 73 / 0.4);
+    --color-danger-emphasis: #da3633;
+    --color-danger-emphasis-hover: #e5534b;
 }
 
 @layer base {
@@ -80,6 +82,10 @@
         @apply border-white/10 bg-neutral text-white hover:bg-neutral-hover;
     }
 
+    .btn-danger {
+        @apply border-white/10 bg-danger-emphasis text-white hover:bg-danger-emphasis-hover;
+    }
+
     .btn-lg {
         @apply px-6 py-2.5 text-xl font-bold;
     }
@@ -87,7 +93,7 @@
     /* Unselectable: greyed out, no hover, no clicks */
     .btn:disabled,
     .btn-disabled {
-        @apply pointer-events-none opacity-50 select-none;
+        @apply opacity-50 select-none cursor-not-allowed;
     }
 
     /* Form fields */
