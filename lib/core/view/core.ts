@@ -67,7 +67,7 @@ export class GameWindow {
     splitView(id: number, at: number, o: Orientation): number {
         this.viewIDCheck(id);
 
-        let toSplit = this.views[id];
+        const toSplit = this.views[id];
         let newSplit: View;
         switch (o) {
             // Make split along the vertical axis

@@ -35,7 +35,8 @@ export class Block extends ModelElement {
         return { x: this.X, y: this.Y, w: this.width, h: this.height };
     }
 
-    protected moveObject(_dt: number): void {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Delta time is not used by a block but added to keep the method signature
+    protected moveObject(dt: number): void {
         this.Y += this.fullHeight / GAME_BLOCK_DOWN_STEPS;
     }
 

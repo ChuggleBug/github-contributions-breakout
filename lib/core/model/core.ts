@@ -118,7 +118,7 @@ export abstract class ModelElement {
         );
     }
 
-    // @ts-ignore
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- By Default, an element does not handle collision. Subclasses are meant to override this
     handleCollision(element: ModelElement): void {}
 
     move(dt: number) {

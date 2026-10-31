@@ -43,8 +43,6 @@ export class Breakout {
     readonly canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private rafId = 0;
-    // @ts-ignore
-    private running = false;
     private abort = new AbortController(); // for event listeners
     private resizeObserver?: ResizeObserver;
 
@@ -158,30 +156,23 @@ export class Breakout {
         );
         this.canvas.addEventListener(
             "pointerdown",
-            (_: PointerEvent) => this.handlePointerDown(),
+            () => this.handlePointerDown(),
             {
                 signal,
             },
         );
-        this.canvas.addEventListener(
-            "blur",
-            (_: FocusEvent) => this.handleBlur(),
-            { signal },
-        );
-        this.canvas.addEventListener(
-            "focus",
-            (_: FocusEvent) => this.handleFocus(),
-            {
-                signal,
-            },
-        );
-        window.addEventListener("resize", (_: UIEvent) => this.handleResize(), {
+        this.canvas.addEventListener("blur", () => this.handleBlur(), {
+            signal,
+        });
+        this.canvas.addEventListener("focus", () => this.handleFocus(), {
+            signal,
+        });
+        window.addEventListener("resize", () => this.handleResize(), {
             signal,
         });
     }
 
     private start() {
-        let frameCount = 0;
         let lastReportedScore = -1;
 
         let lastTime: number | null = null;
@@ -227,7 +218,6 @@ export class Breakout {
             }
             this.drawBorders();
 
-            frameCount++;
             this.rafId = window.requestAnimationFrame(render);
         };
         this.rafId = window.requestAnimationFrame(render);
@@ -477,11 +467,11 @@ export class Breakout {
                     .slice(i, i + this.startingBlocks.blocksPerRow)
                     .map((bd, j) => {
                         const cellX = j * blockModelLength;
-                        let cellY = yScale(
+                        const cellY = yScale(
                             CONSTANTS.GAME_BLOCK_STARTING_LEVEL -
                                 rowNum * blockModelLength,
                         );
-                        let block = new Block({
+                        const block = new Block({
                             X: cellX + half,
                             Y: cellY + half,
                             Z: 2,
@@ -513,7 +503,7 @@ export class Breakout {
         const loadedBlocks = blockMatrix.slice(0, blockSlice);
         const blockQueue = blockMatrix.slice(blockSlice);
 
-        let paddle = new Paddle({
+        const paddle = new Paddle({
             ...DEFAULTS.paddle,
             ...this.properties?.paddle,
             fillColor: this.colors.paddle,
@@ -665,7 +655,6 @@ export class Breakout {
     }
 
     destroy() {
-        this.running = false;
         cancelAnimationFrame(this.rafId);
         this.abort.abort();
         this.resizeObserver?.disconnect();

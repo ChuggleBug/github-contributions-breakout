@@ -17,7 +17,8 @@ export const RANDOM_PALATTE: ColorPalette = {
     background: randHex(),
     paddle: randHex(),
     ball: randHex(),
-    blocks: new MemoColorLevelFunction((_level: number) => randHex()),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- level is not used by this color pallete, and instead returns a random one
+    blocks: new MemoColorLevelFunction((level: number) => randHex()),
 };
 
 export default RANDOM_PALATTE;
