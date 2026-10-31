@@ -75,18 +75,13 @@ function App() {
 
         setLoading(true);
 
-        setTimeout(
-            async () => {
-                try {
-                    setRawOutput(await driver.getBlocks());
-                } catch (e) {
-                    setError(e instanceof Error ? e.message : String(e));
-                } finally {
-                    setLoading(false);
-                }
-            },
-            import.meta.env.VITE_MODE === "development" ? 1000 : 0,
-        );
+        try {
+            setRawOutput(await driver.getBlocks());
+        } catch (e) {
+            setError(e instanceof Error ? e.message : String(e));
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleCopy = () => {
@@ -104,7 +99,7 @@ function App() {
         const { data, properties: sidebar } = blockTransform(rawOuput, {
             rowLength,
         });
-        setProperties({...properties, sidebar})
+        setProperties({ ...properties, sidebar });
         setStartingBlocks(data);
     };
 
@@ -220,7 +215,7 @@ function App() {
                         </pre>
                     </div>
                 </Dropdown>
-                <div className="flex flex-row justify-between">
+                <div className="flex flex-row justify-between gap-5">
                     <div className="flex flex-row gap-5">
                         <button
                             className="btn btn-primary btn-lg"
@@ -242,7 +237,7 @@ function App() {
                     </div>
                     <div className="flex flex-row gap-5">
                         <button
-                            className="btn btn-gray btn-lg"
+                            className="btn btn-primary btn-lg"
                             onClick={() => {
                                 if (rawOuput) {
                                     setSavedOutput(rawOuput);

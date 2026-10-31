@@ -21,7 +21,7 @@ export function SharedAdvancedFields({
                     onChange({ ...value, sinceDate: e.target.value })
                 }
             />
-            {import.meta.env.VITE_MODE === "development" && (
+            {import.meta.env.DEV && (
                 <Field
                     label="URL Endpoint"
                     type="text"
