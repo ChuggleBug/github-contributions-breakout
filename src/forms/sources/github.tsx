@@ -18,4 +18,16 @@ export const gitHubSource: SourceDefinition<GitHubFormState> = {
             repository,
             ...(!!token && { token }),
         }),
+    note: (
+        <>
+            <span>
+                GitHub returns only the commits of the previous 52 weeks. Refer
+                to the{" "}
+            </span>
+            <a href="https://docs.github.com/en/rest/metrics/statistics?apiVersion=2026-03-10#get-the-last-year-of-commit-activity">
+                API Docs
+            </a>
+            <span> for more information.</span>
+        </>
+    ),
 };

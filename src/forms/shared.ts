@@ -3,10 +3,11 @@ import type {
     BlocksDriver,
     BlocksDriverOptions,
 } from "../util/blocks/types/core";
+import type React from "react";
 
 // Defaults to show what to put
 export const MY_USER = "ChuggleBug";
-export const MY_REPO = "WikiGraph";
+export const MY_REPO = "github-contributions-breakout";
 
 export type FieldsProps<T> = {
     value: T;
@@ -38,4 +39,5 @@ export type SourceDefinition<T> = {
     /** Source-specific fields shown inside the collapsed "Advanced features". */
     AdvancedFields?: ComponentType<FieldsProps<T>>;
     create: (specific: T, shared: BlocksDriverOptions) => BlocksDriver;
+    note?: string | React.ReactNode;
 };

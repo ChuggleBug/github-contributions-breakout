@@ -11,4 +11,13 @@ export const contributionsSource: SourceDefinition<ContributionsFormState> = {
     Fields: ContributionsFields,
     create: (specific, shared) =>
         new ContributionsAPIBlockDriver({ ...shared, ...specific }),
+    note: (
+        <>
+            <span>This endpoint relies on the </span>
+            <a href="https://github.com/grubersjoe/github-contributions-api">
+                GitHub Contributions API
+            </a>
+            <span>.</span>
+        </>
+    ),
 };

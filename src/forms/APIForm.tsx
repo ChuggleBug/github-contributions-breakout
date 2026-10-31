@@ -1,4 +1,6 @@
 import { useState, type SubmitEvent } from "react";
+import { FaInfoCircle } from "react-icons/fa";
+import { Disclosure } from "../components/Disclosure";
 import type { BlocksDriver } from "../util/blocks/types/core";
 import { SharedAdvancedFields } from "./SharedAdvancedFields";
 import {
@@ -56,9 +58,21 @@ export function APIForm<T>({
                     />
                 </div>
             </details>
-            <button type="submit" className="btn btn-primary self-start">
-                Submit
-            </button>
+            <div className="flex flex-row gap-2 items-center">
+                <button type="submit" className="btn btn-primary self-start">
+                    Submit
+                </button>
+                {source.note && (
+                    <Disclosure
+                        icon={<FaInfoCircle size={18} />}
+                        label="Source notice"
+                        align="left"
+                    >
+                        <strong className="text-fg">Note</strong>
+                        <p>{source.note}</p>
+                    </Disclosure>
+                )}
+            </div>
         </form>
     );
 }
