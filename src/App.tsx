@@ -1,4 +1,4 @@
-import React, { useReducer, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { Breakout, type BreakoutProps } from "@breakout/react";
 import { FaRegCopy } from "react-icons/fa";
 
@@ -218,12 +218,19 @@ function App() {
                         </pre>
                     </div>
                 </Dropdown>
-                <div>
+                <div className="flex flex-row gap-5">
                     <button
                         className="btn btn-primary btn-lg"
                         onClick={handleGameStart}
+                        disabled={!rawInput}
                     >
                         Start Game
+                    </button>
+                    <button
+                        className="btn btn-gray btn-lg"
+                        onClick={() => setStartingBlocks(null)}
+                    >
+                        Reload Game
                     </button>
                 </div>
             </section>

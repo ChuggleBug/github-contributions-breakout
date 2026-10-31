@@ -23,6 +23,9 @@
     --color-success: rgb(46, 153, 64);
     --color-success-hover: #29903b;
 
+    --color-neutral: rgb(110, 118, 129);
+    --color-neutral-hover: rgb(125, 133, 144);
+
     --color-danger: #f85149;
     --color-danger-muted: rgb(248 81 73 / 0.1);
     --color-danger-border: rgb(248 81 73 / 0.4);
@@ -73,8 +76,18 @@
         @apply border-white/10 bg-success text-white hover:bg-success-hover;
     }
 
+    .btn-gray {
+        @apply border-white/10 bg-neutral text-white hover:bg-neutral-hover;
+    }
+
     .btn-lg {
         @apply px-6 py-2.5 text-xl font-bold;
+    }
+
+    /* Unselectable: greyed out, no hover, no clicks */
+    .btn:disabled,
+    .btn-disabled {
+        @apply pointer-events-none opacity-50 select-none;
     }
 
     /* Form fields */
